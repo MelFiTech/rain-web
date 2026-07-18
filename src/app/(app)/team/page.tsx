@@ -145,9 +145,9 @@ export default function TeamPage() {
                   <Badge
                     tone={
                       m.status === "active"
-                        ? "strong"
+                        ? "success"
                         : m.status === "invited"
-                          ? "default"
+                          ? "warning"
                           : "soft"
                     }
                   >

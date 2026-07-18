@@ -84,9 +84,9 @@ export default function EarningsPage() {
         <Badge
           tone={
             r.status === "available"
-              ? "strong"
+              ? "success"
               : r.status === "pending"
-                ? "default"
+                ? "warning"
                 : "soft"
           }
         >

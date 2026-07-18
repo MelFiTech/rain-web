@@ -1,5 +1,6 @@
 "use client";
 
+import { CuteAvatar } from "@/components/ui/avatar";
 import { formatNaira, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { fetchNotifications, markNotificationRead } from "@/services/dashboard";
@@ -8,10 +9,10 @@ import type { NotificationItem } from "@/types";
 import { useAuth } from "@/contexts/auth-context";
 import {
   Bell,
-  ChevronDown,
   LogOut,
   Menu,
   Settings,
+  ShieldCheck,
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
@@ -24,6 +25,9 @@ interface HeaderProps {
 }
 
 function getPageTitle(pathname: string): string {
+  if (pathname === "/verify" || pathname.startsWith("/verify/")) {
+    return "Verify User";
+  }
   const match = NAV_ITEMS.find(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
   );
@@ -75,7 +79,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md no-print">
+    <header className="shrink-0 z-30 bg-surface border-b border-line no-print">
       <div className="flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 h-16">
         <div className="flex items-center gap-3 min-w-0">
           <button
@@ -100,6 +104,13 @@ export function Header({ onMenuClick }: HeaderProps) {
               {formatNaira(balance)}
             </span>
           </Link>
+          <Link
+            href="/verify"
+            className="inline-flex items-center gap-2 h-9 px-3 sm:px-4 mx-1 rounded-full text-sm font-medium text-white bg-gradient-to-b from-[#f2679e] to-[#d63f7c] ring-1 ring-black/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_2px_rgba(0,0,0,0.15),0_2px_10px_-2px_rgba(234,76,137,0.55)] hover:from-[#f47bab] hover:to-[#e04a86] active:scale-[0.98] transition-all"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            <span className="hidden sm:inline">Verify User</span>
+          </Link>
 
           <div className="relative" ref={notifRef}>
             <button
@@ -112,12 +123,12 @@ export function Header({ onMenuClick }: HeaderProps) {
             >
               <Bell className="h-4.5 w-4.5 text-muted" />
               {unread > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-ink" />
+                <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
               )}
             </button>
 
             {notifOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-surface rounded-2xl shadow-xl animate-fade-in overflow-hidden">
+              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-line bg-glass backdrop-blur-2xl backdrop-saturate-150 shadow-[0_16px_48px_-12px_rgba(10,5,8,0.45)] animate-fade-in overflow-hidden">
                 <div className="px-4 py-3 flex items-center justify-between">
                   <span className="text-sm font-semibold text-ink">
                     Notifications
@@ -169,52 +180,54 @@ export function Header({ onMenuClick }: HeaderProps) {
                 setProfileOpen((v) => !v);
                 setNotifOpen(false);
               }}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-hover cursor-pointer"
+              className="ml-1 rounded-full cursor-pointer transition-transform hover:scale-105 active:scale-95"
+              aria-label="Open profile menu"
             >
-              <div className="h-8 w-8 rounded-full bg-hover flex items-center justify-center text-xs font-semibold text-ink">
-                {user?.name
-                  ?.split(" ")
-                  .map((p) => p[0])
-                  .slice(0, 2)
-                  .join("") ?? "PN"}
-              </div>
-              <ChevronDown className="h-3.5 w-3.5 text-muted hidden sm:block" />
+              <CuteAvatar className="h-8 w-8 ring-1 ring-line" />
             </button>
 
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-surface rounded-2xl shadow-xl animate-fade-in overflow-hidden py-1">
-                <div className="px-4 py-3">
-                  <p className="text-sm font-medium text-ink truncate">
-                    {user?.name}
-                  </p>
-                  <p className="text-xs text-muted truncate">
-                    {user?.institution.name}
-                  </p>
+              <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-line bg-glass backdrop-blur-2xl backdrop-saturate-150 shadow-[0_16px_48px_-12px_rgba(10,5,8,0.45)] animate-fade-in overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-4">
+                  <CuteAvatar className="h-10 w-10 shrink-0 ring-1 ring-line" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink truncate">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-muted truncate mt-0.5">
+                      {user?.institution.name}
+                    </p>
+                  </div>
                 </div>
-                <div className="h-px bg-line mx-2" />
-                <Link
-                  href="/settings"
-                  onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-hover"
-                >
-                  <Settings className="h-4 w-4 text-muted" />
-                  Settings
-                </Link>
-                <Link
-                  href="/wallet"
-                  onClick={() => setProfileOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-hover sm:hidden"
-                >
-                  <Wallet className="h-4 w-4 text-muted" />
-                  Wallet · {formatNaira(balance)}
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-hover cursor-pointer"
-                >
-                  <LogOut className="h-4 w-4 text-muted" />
-                  Log Out
-                </button>
+                <div className="h-px bg-line" />
+                <div className="p-1.5">
+                  <Link
+                    href="/settings"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-hover transition-colors"
+                  >
+                    <Settings className="h-4 w-4 text-muted" />
+                    Settings
+                  </Link>
+                  <Link
+                    href="/wallet"
+                    onClick={() => setProfileOpen(false)}
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-hover transition-colors sm:hidden"
+                  >
+                    <Wallet className="h-4 w-4 text-muted" />
+                    Wallet · {formatNaira(balance)}
+                  </Link>
+                </div>
+                <div className="h-px bg-line" />
+                <div className="p-1.5">
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-hover transition-colors cursor-pointer"
+                  >
+                    <LogOut className="h-4 w-4 text-muted" />
+                    Log Out
+                  </button>
+                </div>
               </div>
             )}
           </div>

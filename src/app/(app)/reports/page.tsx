@@ -147,18 +147,20 @@ function ReportsContent() {
     <div className="space-y-6">
       <Card>
         <div className="flex flex-col lg:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-subtle" />
-            <Input
+          <div className="search-field flex items-center gap-2 h-9 flex-1 min-w-0 rounded-lg border border-line bg-card px-3 transition-colors">
+            <Search className="h-4 w-4 text-subtle shrink-0" />
+            <input
               placeholder="Search reference or identifier"
               value={filters.search || ""}
               onChange={(e) =>
                 setFilters((f) => ({ ...f, search: e.target.value, page: 1 }))
               }
-              className="pl-9"
+              className="w-full bg-transparent text-sm text-foreground placeholder:text-subtle focus:outline-none"
             />
           </div>
           <Select
+            variant="outline"
+            fieldSize="sm"
             value={filters.category || "all"}
             onChange={(e) =>
               setFilters((f) => ({
@@ -177,6 +179,8 @@ function ReportsContent() {
             className="lg:w-48"
           />
           <Select
+            variant="outline"
+            fieldSize="sm"
             value={filters.confidence || "all"}
             onChange={(e) =>
               setFilters((f) => ({
@@ -195,20 +199,24 @@ function ReportsContent() {
             className="lg:w-44"
           />
           <Input
+            variant="outline"
+            fieldSize="sm"
             type="date"
             value={filters.dateFrom || ""}
             onChange={(e) =>
               setFilters((f) => ({ ...f, dateFrom: e.target.value, page: 1 }))
             }
-            className="lg:w-40"
+            containerClassName="lg:w-40"
           />
           <Input
+            variant="outline"
+            fieldSize="sm"
             type="date"
             value={filters.dateTo || ""}
             onChange={(e) =>
               setFilters((f) => ({ ...f, dateTo: e.target.value, page: 1 }))
             }
-            className="lg:w-40"
+            containerClassName="lg:w-40"
           />
         </div>
 

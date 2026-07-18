@@ -43,8 +43,8 @@ export default function LoginPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="h-10 w-10 rounded-xl bg-ink text-white flex items-center justify-center font-semibold">
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-10 w-10 rounded-xl bg-ink text-background flex items-center justify-center font-semibold">
           R
         </div>
       </div>
@@ -52,30 +52,32 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-background">
-      <div className="w-full max-w-[400px] animate-fade-in">
-        <div className="flex flex-col items-center mb-10">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-ink text-white text-lg font-semibold mb-4">
-            R
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">
+    <div className="relative h-screen flex overflow-hidden bg-[#0e0c0d]">
+      {/* Endless halftone dots — oversized past every edge so the pattern
+          clips mid-dot at the viewport and never shows a trailing gap */}
+      <div className="absolute -inset-3.5 halftone" aria-hidden />
+
+      {/* Left — sign-in form, inset surface container like the app shell */}
+      <div className="relative flex-1 flex p-2 sm:p-2.5">
+        <div className="flex-1 flex flex-col min-w-0 bg-surface rounded-2xl border border-line shadow-[0_1px_2px_rgba(20,10,15,0.03),0_12px_32px_-12px_rgba(20,10,15,0.08)] overflow-y-auto px-6 sm:px-12 py-8 sm:py-10 animate-fade-in">
+        <div className="w-full max-w-[400px] mx-auto">
+          <span className="font-geist text-xl font-semibold tracking-tight text-ink">
             Rain
-          </h1>
-          <p className="mt-1.5 text-sm text-muted text-center">
-            Risk Analysis &amp; Intelligence Network
-          </p>
+          </span>
         </div>
 
-        <div className="bg-surface rounded-2xl p-6 sm:p-8">
-          <h2 className="text-lg font-semibold text-ink tracking-tight mb-1">
+        <div className="flex-1 flex flex-col justify-center w-full max-w-[400px] mx-auto py-10">
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-ink">
             Sign in
-          </h2>
-          <p className="text-sm text-muted mb-6">
-            Access your institution dashboard
+          </h1>
+          <p className="mt-3 text-sm text-muted leading-relaxed">
+            Access your institution dashboard on Rain — the Risk Analysis
+            &amp; Intelligence Network.
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <Input
+              variant="outline"
               label="Email address"
               type="email"
               name="email"
@@ -88,6 +90,7 @@ export default function LoginPage() {
 
             <div className="relative">
               <Input
+                variant="outline"
                 label="Password"
                 type={showPassword ? "text" : "password"}
                 name="password"
@@ -118,7 +121,7 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded accent-ink"
+                  className="h-4 w-4 rounded accent-primary"
                 />
                 <span className="text-sm text-muted">Remember me</span>
               </label>
@@ -138,26 +141,66 @@ export default function LoginPage() {
             {error && (
               <div
                 role="alert"
-                className="rounded-xl bg-hover px-4 py-3 text-sm text-foreground"
+                className="rounded-xl bg-primary-soft px-4 py-3 text-sm text-foreground"
               >
                 {error}
               </div>
             )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              loading={loading}
-            >
+            <Button type="submit" className="w-full" size="lg" loading={loading}>
               {loading ? "Signing in…" : "Log in"}
             </Button>
           </form>
+
+          <p className="mt-5 text-xs text-subtle">
+            Demo: compliance@paynest.ng / password123
+          </p>
         </div>
 
-        <p className="mt-6 text-center text-xs text-subtle">
-          Demo: compliance@paynest.ng / password123
-        </p>
+        <div className="w-full max-w-[400px] mx-auto flex items-center justify-center gap-4 text-xs text-muted">
+          <span className="hover:text-foreground transition-colors cursor-pointer">
+            Terms of Service
+          </span>
+          <span className="hover:text-foreground transition-colors cursor-pointer">
+            Privacy Policy
+          </span>
+          <span className="hover:text-foreground transition-colors cursor-pointer">
+            Support
+          </span>
+        </div>
+        </div>
+      </div>
+
+      {/* Right — testimonial (dots continue behind; soft shadow hugs the text only) */}
+      <div className="hidden lg:flex flex-1 relative overflow-hidden items-center justify-center">
+        <figure className="relative max-w-xl px-10 text-center">
+          <div
+            className="absolute -inset-x-24 -inset-y-16"
+            aria-hidden
+            style={{
+              background:
+                "radial-gradient(ellipse 55% 60% at 50% 50%, rgba(14,12,13,0.97) 30%, rgba(14,12,13,0.7) 58%, rgba(14,12,13,0) 78%)",
+            }}
+          />
+          <blockquote className="relative font-geist text-lg xl:text-xl leading-snug text-white">
+            &ldquo;Every fraudulent account we catch before onboarding saves us
+            millions. Rain tells us in seconds what used to take weeks of
+            back-and-forth between institutions.&rdquo;
+          </blockquote>
+          <figcaption className="relative mt-10 flex items-center justify-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white text-xs font-semibold">
+              AO
+            </span>
+            <span className="text-left leading-tight">
+              <span className="block text-sm font-medium text-white">
+                Adaeze Okafor
+              </span>
+              <span className="block text-sm text-white/50 mt-0.5">
+                Head of Compliance, PayNest MFB
+              </span>
+            </span>
+          </figcaption>
+        </figure>
       </div>
     </div>
   );

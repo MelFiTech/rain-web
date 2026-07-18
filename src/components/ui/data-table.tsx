@@ -35,12 +35,12 @@ export function DataTable<T>({
     <div className="overflow-x-auto -mx-1">
       <table className="w-full min-w-[640px] text-left">
         <thead>
-          <tr>
+          <tr className="border-b border-line">
             {columns.map((col) => (
               <th
                 key={col.key}
                 className={cn(
-                  "px-3 py-3 text-xs font-medium text-muted uppercase tracking-wider",
+                  "px-4 py-3 text-xs font-medium text-muted",
                   col.hideOnMobile && "hidden md:table-cell",
                   col.className
                 )}
@@ -50,7 +50,7 @@ export function DataTable<T>({
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line">
           {data.map((row) => (
             <tr
               key={keyExtractor(row)}
@@ -64,7 +64,7 @@ export function DataTable<T>({
                 <td
                   key={col.key}
                   className={cn(
-                    "px-3 py-3.5 text-sm text-foreground",
+                    "px-4 py-4 text-sm text-foreground",
                     col.hideOnMobile && "hidden md:table-cell",
                     col.className
                   )}

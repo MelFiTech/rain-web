@@ -2,7 +2,6 @@
 
 import { ConfidenceBadge } from "@/components/confidence-badge";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DataTable, Pagination, type Column } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
@@ -120,7 +119,7 @@ function HistoryContent() {
       key: "result",
       header: "Result",
       render: (r) => (
-        <Badge tone={r.result === "match" ? "strong" : "soft"}>
+        <Badge tone={r.result === "match" ? "success" : "violet"}>
           {r.result === "match" ? "Match" : "No match"}
         </Badge>
       ),
@@ -173,18 +172,20 @@ function HistoryContent() {
     <div className="space-y-6">
       <Card>
         <div className="flex flex-col lg:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-subtle" />
-            <Input
+          <div className="search-field flex items-center gap-2 h-9 flex-1 min-w-0 rounded-lg border border-line bg-card px-3 transition-colors">
+            <Search className="h-4 w-4 text-subtle shrink-0" />
+            <input
               placeholder="Search reference or identifier"
               value={filters.search || ""}
               onChange={(e) =>
                 setFilters((f) => ({ ...f, search: e.target.value, page: 1 }))
               }
-              className="pl-9"
+              className="w-full bg-transparent text-sm text-foreground placeholder:text-subtle focus:outline-none"
             />
           </div>
           <Select
+            variant="outline"
+            fieldSize="sm"
             value={filters.result || "all"}
             onChange={(e) =>
               setFilters((f) => ({
@@ -201,6 +202,8 @@ function HistoryContent() {
             className="lg:w-40"
           />
           <Select
+            variant="outline"
+            fieldSize="sm"
             value={filters.confidence || "all"}
             onChange={(e) =>
               setFilters((f) => ({
@@ -219,31 +222,35 @@ function HistoryContent() {
             className="lg:w-44"
           />
           <Input
+            variant="outline"
+            fieldSize="sm"
             type="date"
             value={filters.dateFrom || ""}
             onChange={(e) =>
               setFilters((f) => ({ ...f, dateFrom: e.target.value, page: 1 }))
             }
-            className="lg:w-40"
+            containerClassName="lg:w-40"
             aria-label="From date"
           />
           <Input
+            variant="outline"
+            fieldSize="sm"
             type="date"
             value={filters.dateTo || ""}
             onChange={(e) =>
               setFilters((f) => ({ ...f, dateTo: e.target.value, page: 1 }))
             }
-            className="lg:w-40"
+            containerClassName="lg:w-40"
             aria-label="To date"
           />
-          <Button
-            variant="secondary"
+          <button
             onClick={handleExport}
-            loading={exporting}
+            disabled={exporting}
+            className="inline-flex items-center justify-center gap-2 h-9 px-3.5 rounded-lg border border-line bg-card text-sm font-medium text-foreground hover:bg-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
           >
-            <Download className="h-4 w-4" />
-            CSV
-          </Button>
+            <Download className="h-4 w-4 text-muted" />
+            {exporting ? "Exporting…" : "Export"}
+          </button>
         </div>
 
         {loading ? (
@@ -279,7 +286,7 @@ function HistoryContent() {
         {selected && (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Badge tone={selected.result === "match" ? "strong" : "soft"}>
+              <Badge tone={selected.result === "match" ? "success" : "violet"}>
                 {selected.result === "match" ? "Match" : "No match"}
               </Badge>
               {selected.confidence && (

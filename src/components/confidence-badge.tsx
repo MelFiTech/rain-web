@@ -2,10 +2,10 @@ import { cn } from "@/lib/utils";
 import type { ConfidenceInfo, ConfidenceLevel } from "@/types";
 
 const levelStyles: Record<ConfidenceLevel, string> = {
-  low: "bg-neutral-100 text-neutral-600",
-  medium: "bg-neutral-200 text-neutral-700",
-  high: "bg-neutral-800 text-white",
-  very_high: "bg-ink text-white",
+  low: "bg-hover text-muted",
+  medium: "bg-info-bg text-info-fg",
+  high: "bg-warn-bg text-warn-fg",
+  very_high: "bg-bad-bg text-bad-fg",
 };
 
 interface ConfidenceBadgeProps {
@@ -23,19 +23,10 @@ export function ConfidenceBadge({
     <div className={cn("inline-flex flex-col gap-1", className)}>
       <span
         className={cn(
-          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium w-fit",
+          "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium w-fit",
           levelStyles[confidence.level]
         )}
       >
-        <span
-          className={cn(
-            "h-1.5 w-1.5 rounded-full",
-            confidence.level === "low" && "bg-neutral-400",
-            confidence.level === "medium" && "bg-neutral-500",
-            confidence.level === "high" && "bg-white/70",
-            confidence.level === "very_high" && "bg-white"
-          )}
-        />
         {confidence.label}
         <span className="opacity-70">· {confidence.independentSourceCount}</span>
       </span>

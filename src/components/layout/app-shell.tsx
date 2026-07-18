@@ -6,10 +6,24 @@ import { useEffect, useState } from "react";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 
+const COLLAPSE_KEY = "rain:sidebar-collapsed";
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1");
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((v) => {
+      localStorage.setItem(COLLAPSE_KEY, v ? "0" : "1");
+      return !v;
+    });
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -21,7 +35,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-ink text-white flex items-center justify-center font-semibold">
+          <div className="h-10 w-10 rounded-xl bg-ink text-background flex items-center justify-center font-semibold">
             R
           </div>
           <div className="h-1 w-16 rounded-full skeleton" />
@@ -33,11 +47,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen flex bg-background">
-      <Sidebar open={mobileOpen} onClose={() => setMobileOpen(false)} />
-      <div className="flex-1 flex flex-col min-w-0">
+    <div className="h-screen flex p-2 sm:p-2.5 lg:pl-0 overflow-hidden">
+      <Sidebar
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        collapsed={collapsed}
+        onToggle={toggleCollapsed}
+      />
+      <div className="flex-1 flex flex-col min-w-0 bg-surface rounded-2xl border border-line shadow-[0_1px_2px_rgba(20,10,15,0.03),0_12px_32px_-12px_rgba(20,10,15,0.08)] overflow-hidden">
         <Header onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 pb-12 animate-fade-in">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 pb-12 animate-fade-in">
           {children}
         </main>
       </div>

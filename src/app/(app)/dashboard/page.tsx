@@ -4,50 +4,49 @@ import { ConfidenceBadge } from "@/components/confidence-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Skeleton, SkeletonCards } from "@/components/ui/skeleton";
+import { SparkBars, Sparkline } from "@/components/ui/sparkline";
 import {
-  categoryLabel,
-  formatDate,
-  formatDateTime,
-  formatNaira,
-} from "@/lib/format";
+  CHART_SERIES,
+  VerificationChart,
+} from "@/components/verification-chart";
+import { formatDateTime, formatNaira } from "@/lib/format";
 import { fetchDashboard } from "@/services/dashboard";
-import { verifyUser } from "@/services/verification";
-import type {
-  DashboardSummary,
-  IdentifierType,
-  VerificationRecord,
-} from "@/types";
-import {
-  IDENTIFIER_TYPES,
-  NIGERIAN_BANKS,
-  VERIFICATION_COST,
-} from "@/types";
-import {
-  ArrowRight,
-  Banknote,
-  ClipboardList,
-  Search,
-  Wallet,
-} from "lucide-react";
+import type { DashboardSummary, VerificationRecord } from "@/types";
+import { ArrowRight, Megaphone } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+const ANNOUNCEMENTS = [
+  {
+    title: "BVN-linked lookups are live",
+    body: "Verifications now cross-check BVN-linked accounts across all member institutions automatically.",
+    date: "Jul 15",
+  },
+  {
+    title: "Scheduled maintenance",
+    body: "Rain will be briefly unavailable on Jul 22, 01:00–02:30 WAT while we upgrade the network.",
+    date: "Jul 12",
+  },
+  {
+    title: "120 institutions on Rain",
+    body: "The network keeps growing — verification coverage just got wider across Nigeria.",
+    date: "Jul 8",
+  },
+];
+
+const REPORT_CATEGORIES = [
+  { label: "Scam", count: 34 },
+  { label: "Mule account", count: 27 },
+  { label: "Identity theft", count: 19 },
+  { label: "Loan fraud", count: 12 },
+  { label: "Chargeback", count: 8 },
+];
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // Quick verify
-  const [idType, setIdType] = useState<IdentifierType>("account_number");
-  const [identifier, setIdentifier] = useState("");
-  const [bank, setBank] = useState("");
-  const [verifying, setVerifying] = useState(false);
-  const [verifyError, setVerifyError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,32 +64,6 @@ export default function DashboardPage() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const handleQuickVerify = async (e: FormEvent) => {
-    e.preventDefault();
-    setVerifyError("");
-    setVerifying(true);
-    try {
-      const result = await verifyUser({
-        identifierType: idType,
-        identifier,
-        bankCode: bank || undefined,
-      });
-      if (result.status === "success") {
-        router.push(`/verify?ref=${result.data.reference}`);
-      } else if (result.status === "insufficient_balance") {
-        setVerifyError(
-          `Insufficient balance (${formatNaira(result.balance)}). Cost is ${formatNaira(result.cost)}.`
-        );
-      } else {
-        setVerifyError(result.message);
-      }
-    } catch {
-      setVerifyError("Verification failed. Please try again.");
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -116,106 +89,141 @@ export default function DashboardPage() {
     {
       label: "Wallet balance",
       value: formatNaira(data.walletBalance),
-      icon: Wallet,
       href: "/wallet",
+      trend: "-2.1%",
+      trendTone: "danger" as const,
+      viz: (
+        <Sparkline
+          data={[54, 50, 52, 47, 49, 44, 48, 45]}
+          color={CHART_SERIES.verifications.color}
+        />
+      ),
     },
     {
       label: "Total verifications",
       value: data.totalVerifications.toLocaleString(),
-      icon: Search,
       href: "/history",
+      trend: "+12.5%",
+      trendTone: "success" as const,
+      viz: (
+        <SparkBars
+          data={[3, 5, 4, 6, 7, 6, 8, 9]}
+          color={CHART_SERIES.verifications.color}
+        />
+      ),
     },
     {
       label: "Users reported",
       value: data.usersReported.toLocaleString(),
-      icon: ClipboardList,
       href: "/reports",
+      trend: "0.0%",
+      trendTone: "soft" as const,
+      viz: (
+        <Sparkline data={[4, 5, 4, 5, 5, 4, 5, 5]} color="var(--subtle)" />
+      ),
     },
     {
       label: "Total earnings",
       value: formatNaira(data.totalEarnings),
-      icon: Banknote,
       href: "/earnings",
+      trend: "+6.5%",
+      trendTone: "success" as const,
+      viz: (
+        <Sparkline
+          data={[2, 3, 3, 4, 5, 5, 6, 7]}
+          color={CHART_SERIES.matches.color}
+        />
+      ),
     },
   ];
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Link key={stat.label} href={stat.href}>
-              <Card className="hover:bg-hover/40 transition-colors h-full">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-muted uppercase tracking-wider">
-                      {stat.label}
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-tight text-ink tabular-nums">
-                      {stat.value}
-                    </p>
-                  </div>
-                  <div className="h-9 w-9 rounded-xl bg-hover flex items-center justify-center">
-                    <Icon className="h-4 w-4 text-muted" />
-                  </div>
-                </div>
-              </Card>
-            </Link>
-          );
-        })}
+        {stats.map((stat) => (
+          <Link key={stat.label} href={stat.href}>
+            <Card className="hover:bg-hover/40 transition-colors h-full">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-muted uppercase tracking-wider truncate">
+                  {stat.label}
+                </p>
+                <Badge tone={stat.trendTone} className="shrink-0">
+                  {stat.trend}
+                </Badge>
+              </div>
+              <div className="mt-3 flex items-end justify-between gap-3">
+                <p className="text-2xl font-semibold tracking-tight text-ink tabular-nums">
+                  {stat.value}
+                </p>
+                {stat.viz}
+              </div>
+            </Card>
+          </Link>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <Card className="xl:col-span-1">
+        <Card className="xl:col-span-2">
           <CardHeader
-            title="Quick verification"
-            description={`Cost: ${formatNaira(VERIFICATION_COST)} per check`}
+            title="Verification activity"
+            description="Weekly verifications and confirmed matches"
+            action={
+              <div className="flex items-center gap-4">
+                {Object.values(CHART_SERIES).map((s) => (
+                  <span
+                    key={s.label}
+                    className="flex items-center gap-1.5 text-xs text-muted"
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ background: s.color }}
+                    />
+                    {s.label}
+                  </span>
+                ))}
+              </div>
+            }
           />
-          <form onSubmit={handleQuickVerify} className="space-y-3">
-            <Select
-              label="Identifier type"
-              value={idType}
-              onChange={(e) => setIdType(e.target.value as IdentifierType)}
-              options={IDENTIFIER_TYPES.map((t) => ({
-                value: t.value,
-                label: t.label,
-              }))}
-            />
-            {idType === "account_number" && (
-              <Select
-                label="Bank"
-                value={bank}
-                onChange={(e) => setBank(e.target.value)}
-                placeholder="Select bank"
-                options={NIGERIAN_BANKS.map((b) => ({ value: b, label: b }))}
-              />
-            )}
-            <Input
-              label="Identifier"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder={
-                idType === "email"
-                  ? "user@example.com"
-                  : idType === "phone"
-                    ? "08012345678"
-                    : "Enter identifier"
-              }
-              required
-            />
-            {verifyError && (
-              <p className="text-sm text-muted bg-hover rounded-xl px-3 py-2">
-                {verifyError}
-              </p>
-            )}
-            <Button type="submit" className="w-full" loading={verifying}>
-              Verify User
-            </Button>
-          </form>
+          <VerificationChart />
         </Card>
 
-        <Card className="xl:col-span-2" padding="md">
+        <Card>
+          <CardHeader
+            title="Report categories"
+            description="Confirmed matches by type"
+          />
+          <div className="space-y-4">
+            {REPORT_CATEGORIES.map((c) => (
+              <div key={c.label}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm text-foreground">{c.label}</span>
+                  <span className="text-sm font-semibold text-ink tabular-nums">
+                    {c.count}
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-hover overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${(c.count / REPORT_CATEGORIES[0].count) * 100}%`,
+                      background: CHART_SERIES.verifications.color,
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 pt-4 border-t border-line flex items-center justify-between">
+            <span className="text-sm text-muted">Match rate</span>
+            <span className="text-sm font-semibold text-ink tabular-nums">
+              32%
+            </span>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
           <CardHeader
             title="Recent verifications"
             action={
@@ -233,76 +241,31 @@ export default function DashboardPage() {
             ))}
           </div>
         </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader
-            title="Recent reports"
-            action={
-              <Link
-                href="/reports"
-                className="text-sm text-muted hover:text-foreground inline-flex items-center gap-1"
-              >
-                View all <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            }
-          />
-          <div className="space-y-1">
-            {data.recentReports.map((r) => (
-              <Link
-                key={r.id}
-                href={`/reports?id=${r.id}`}
-                className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl hover:bg-hover transition-colors"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink truncate">
-                    {r.maskedAccountNumber ||
-                      r.maskedPhone ||
-                      r.maskedEmail ||
-                      r.fullName ||
-                      r.reference}
-                  </p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {categoryLabel(r.category)} · {formatDate(r.submittedAt)}
-                  </p>
-                </div>
-                <ConfidenceBadge confidence={r.confidence} />
-              </Link>
-            ))}
-          </div>
-        </Card>
 
         <Card>
-          <CardHeader
-            title="Recent earnings"
-            description="₦20 when your report contributes to a verification"
-            action={
-              <Link
-                href="/earnings"
-                className="text-sm text-muted hover:text-foreground inline-flex items-center gap-1"
-              >
-                View all <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            }
-          />
+          <CardHeader title="Announcements" description="Updates from Rain" />
           <div className="space-y-1">
-            {data.recentEarnings.map((e) => (
+            {ANNOUNCEMENTS.map((a) => (
               <div
-                key={e.id}
-                className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl hover:bg-hover/50"
+                key={a.title}
+                className="flex items-start gap-3 px-3 py-3 rounded-xl hover:bg-hover/50 transition-colors"
               >
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-hover">
+                  <Megaphone className="h-3.5 w-3.5 text-muted" />
+                </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink">
-                    {e.maskedIdentifier}
-                  </p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {e.reportReference} · {formatDate(e.createdAt)}
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="text-sm font-medium text-ink truncate">
+                      {a.title}
+                    </p>
+                    <span className="text-[11px] text-subtle whitespace-nowrap">
+                      {a.date}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted mt-0.5 leading-relaxed">
+                    {a.body}
                   </p>
                 </div>
-                <span className="text-sm font-semibold text-ink tabular-nums">
-                  +{formatNaira(e.amount)}
-                </span>
               </div>
             ))}
           </div>
@@ -323,7 +286,7 @@ function VerificationRow({ record }: { record: VerificationRecord }) {
           <p className="text-sm font-medium text-ink truncate">
             {record.maskedIdentifier}
           </p>
-          <Badge tone={record.result === "match" ? "strong" : "soft"}>
+          <Badge tone={record.result === "match" ? "success" : "violet"}>
             {record.result === "match" ? "Match" : "No match"}
           </Badge>
         </div>

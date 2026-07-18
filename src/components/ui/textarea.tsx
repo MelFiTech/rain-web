@@ -27,13 +27,13 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           className={cn(
             "w-full min-h-[100px] px-3.5 py-3 rounded-xl bg-hover text-foreground placeholder:text-subtle text-sm transition-colors resize-y",
             "focus:outline-none focus:bg-active",
-            error && "ring-1 ring-neutral-400",
+            error && "ring-1 ring-subtle",
             className
           )}
           {...props}
         />
         {error && (
-          <p className="mt-1.5 text-xs text-neutral-600">{error}</p>
+          <p className="mt-1.5 text-xs text-muted">{error}</p>
         )}
       </div>
     );
