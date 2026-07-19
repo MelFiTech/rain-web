@@ -1,5 +1,6 @@
 "use client";
 
+import { RainMark } from "@/components/ui/logo";
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -15,9 +16,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="h-10 w-10 rounded-xl bg-ink text-background flex items-center justify-center font-semibold">
-        R
-      </div>
+      <RainMark className="h-10 w-10" />
     </div>
   );
 }

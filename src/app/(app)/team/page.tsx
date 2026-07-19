@@ -216,7 +216,12 @@ export default function TeamPage() {
               {inviteError}
             </p>
           )}
-          <Button type="submit" className="w-full" loading={inviting}>
+          <Button
+            type="submit"
+            className="w-full"
+            loading={inviting}
+            disabled={!name.trim() || !email.trim()}
+          >
             Send invite
           </Button>
         </form>

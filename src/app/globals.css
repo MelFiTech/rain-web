@@ -16,7 +16,7 @@
   --primary-hover: #f0619a;
   --primary-soft: #3d1a29;
   --nav-hover: rgba(255, 255, 255, 0.05);
-  --glass: rgba(24, 22, 23, 0.72);
+  --glass: rgba(30, 27, 28, 0.55);
   --ok-fg: #5cd68f;
   --ok-bg: rgba(74, 222, 128, 0.12);
   --warn-fg: #f5b83d;
@@ -45,7 +45,7 @@
   --primary-hover: #d94480;
   --primary-soft: #fdedf4;
   --nav-hover: rgba(255, 255, 255, 0.65);
-  --glass: rgba(255, 255, 255, 0.78);
+  --glass: rgba(252, 251, 252, 0.6);
   --ok-fg: #15803d;
   --ok-bg: rgba(34, 197, 94, 0.12);
   --warn-fg: #b45309;
@@ -89,13 +89,28 @@
   --font-geist: var(--font-geist-sans);
 }
 
-/* Halftone dot texture for dark panels */
+/* Halftone dot texture for dark panels — drifts one tile per loop, so it's seamless */
 .halftone {
   background-image: radial-gradient(
     rgba(255, 255, 255, 0.14) 1px,
     transparent 1.5px
   );
   background-size: 14px 14px;
+}
+
+@keyframes halftone-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 14px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .halftone {
+    animation: halftone-drift 10s linear infinite;
+  }
 }
 
 * {
@@ -133,6 +148,36 @@ body {
   outline: none;
 }
 
+/* Custom checkbox — pink check, generous radius, theme-aware */
+input[type="checkbox"].checkbox {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1.5px solid var(--active);
+  background: var(--card);
+  cursor: pointer;
+  display: inline-grid;
+  place-content: center;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+input[type="checkbox"].checkbox:hover {
+  border-color: var(--subtle);
+}
+input[type="checkbox"].checkbox:checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+input[type="checkbox"].checkbox:checked::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  clip-path: polygon(14% 44%, 0 63%, 38% 100%, 100% 18%, 84% 4%, 38% 68%);
+}
+
 /* Native date-picker icon follows the theme (default black is invisible on dark) */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.8);
@@ -157,6 +202,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .animate-fade-in {
   animation: fade-in 0.25s ease-out;
+}
+
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-drawer-in {
+  animation: drawer-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes pulse-soft {

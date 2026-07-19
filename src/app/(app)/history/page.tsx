@@ -4,14 +4,15 @@ import { ConfidenceBadge } from "@/components/confidence-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { DataTable, Pagination, type Column } from "@/components/ui/data-table";
-import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { SkeletonTable } from "@/components/ui/skeleton";
 import {
   categoryLabel,
+  formatDate,
   formatDateTime,
   formatNaira,
+  formatTime,
   identifierTypeLabel,
 } from "@/lib/format";
 import {
@@ -40,6 +41,7 @@ function HistoryContent() {
     page: 1,
     pageSize: 8,
   });
+  const [dateRange, setDateRange] = useState("all");
   const [data, setData] = useState<VerificationRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -154,9 +156,12 @@ function HistoryContent() {
       key: "date",
       header: "Date",
       render: (r) => (
-        <span className="text-muted text-xs whitespace-nowrap">
-          {formatDateTime(r.createdAt)}
-        </span>
+        <div className="whitespace-nowrap">
+          <p className="text-xs text-foreground">{formatDate(r.createdAt)}</p>
+          <p className="text-[11px] text-subtle mt-0.5">
+            {formatTime(r.createdAt)}
+          </p>
+        </div>
       ),
     },
     {
@@ -184,7 +189,7 @@ function HistoryContent() {
             />
           </div>
           <Select
-            variant="outline"
+            variant="ghost"
             fieldSize="sm"
             value={filters.result || "all"}
             onChange={(e) =>
@@ -199,10 +204,10 @@ function HistoryContent() {
               { value: "match", label: "Match" },
               { value: "no_match", label: "No match" },
             ]}
-            className="lg:w-40"
+            className="w-auto shrink-0"
           />
           <Select
-            variant="outline"
+            variant="ghost"
             fieldSize="sm"
             value={filters.confidence || "all"}
             onChange={(e) =>
@@ -219,29 +224,35 @@ function HistoryContent() {
               { value: "high", label: "High" },
               { value: "very_high", label: "Very High" },
             ]}
-            className="lg:w-44"
+            className="w-auto shrink-0"
           />
-          <Input
-            variant="outline"
+          <Select
+            variant="ghost"
             fieldSize="sm"
-            type="date"
-            value={filters.dateFrom || ""}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, dateFrom: e.target.value, page: 1 }))
-            }
-            containerClassName="lg:w-40"
-            aria-label="From date"
-          />
-          <Input
-            variant="outline"
-            fieldSize="sm"
-            type="date"
-            value={filters.dateTo || ""}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, dateTo: e.target.value, page: 1 }))
-            }
-            containerClassName="lg:w-40"
-            aria-label="To date"
+            value={dateRange}
+            onChange={(e) => {
+              const v = e.target.value;
+              setDateRange(v);
+              setFilters((f) => ({
+                ...f,
+                dateFrom:
+                  v === "all"
+                    ? ""
+                    : new Date(Date.now() - Number(v) * 86400000)
+                        .toISOString()
+                        .slice(0, 10),
+                dateTo: "",
+                page: 1,
+              }));
+            }}
+            options={[
+              { value: "all", label: "All time" },
+              { value: "7", label: "Last 7 days" },
+              { value: "30", label: "Last 30 days" },
+              { value: "90", label: "Last 90 days" },
+            ]}
+            className="w-auto shrink-0"
+            aria-label="Date range"
           />
           <button
             onClick={handleExport}

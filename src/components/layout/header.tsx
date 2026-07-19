@@ -1,6 +1,7 @@
 "use client";
 
 import { CuteAvatar } from "@/components/ui/avatar";
+import { VerifyDrawer } from "@/components/verify-drawer";
 import { formatNaira, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { fetchNotifications, markNotificationRead } from "@/services/dashboard";
@@ -42,6 +43,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -104,13 +106,13 @@ export function Header({ onMenuClick }: HeaderProps) {
               {formatNaira(balance)}
             </span>
           </Link>
-          <Link
-            href="/verify"
-            className="inline-flex items-center gap-2 h-9 px-3 sm:px-4 mx-1 rounded-full text-sm font-medium text-white bg-gradient-to-b from-[#f2679e] to-[#d63f7c] ring-1 ring-black/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_2px_rgba(0,0,0,0.15),0_2px_10px_-2px_rgba(234,76,137,0.55)] hover:from-[#f47bab] hover:to-[#e04a86] active:scale-[0.98] transition-all"
+          <button
+            onClick={() => setVerifyOpen(true)}
+            className="inline-flex items-center gap-2 h-9 px-3 sm:px-4 mx-1 rounded-full text-sm font-medium text-white bg-gradient-to-b from-[#f2679e] to-[#d63f7c] ring-1 ring-[#c93a72]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_2px_rgba(122,20,58,0.35),0_2px_10px_-2px_rgba(234,76,137,0.5)] hover:from-[#f47bab] hover:to-[#e04a86] active:scale-[0.98] transition-all cursor-pointer"
           >
             <ShieldCheck className="h-4 w-4" />
             <span className="hidden sm:inline">Verify User</span>
-          </Link>
+          </button>
 
           <div className="relative" ref={notifRef}>
             <button
@@ -128,7 +130,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             </button>
 
             {notifOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-line bg-glass backdrop-blur-2xl backdrop-saturate-150 shadow-[0_16px_48px_-12px_rgba(10,5,8,0.45)] animate-fade-in overflow-hidden">
+              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-line bg-glass backdrop-blur-[48px] backdrop-saturate-[1.8] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_48px_-12px_rgba(10,5,8,0.5)] animate-fade-in overflow-hidden">
                 <div className="px-4 py-3 flex items-center justify-between">
                   <span className="text-sm font-semibold text-ink">
                     Notifications
@@ -187,7 +189,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             </button>
 
             {profileOpen && (
-              <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-line bg-glass backdrop-blur-2xl backdrop-saturate-150 shadow-[0_16px_48px_-12px_rgba(10,5,8,0.45)] animate-fade-in overflow-hidden">
+              <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-line bg-glass backdrop-blur-[48px] backdrop-saturate-[1.8] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_48px_-12px_rgba(10,5,8,0.5)] animate-fade-in overflow-hidden">
                 <div className="flex items-center gap-3 px-4 py-4">
                   <CuteAvatar className="h-10 w-10 shrink-0 ring-1 ring-line" />
                   <div className="min-w-0">
@@ -233,6 +235,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           </div>
         </div>
       </div>
+      <VerifyDrawer open={verifyOpen} onClose={() => setVerifyOpen(false)} />
     </header>
   );
 }

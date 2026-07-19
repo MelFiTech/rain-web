@@ -25,6 +25,13 @@ export function formatDateTime(iso: string): string {
   }).format(new Date(iso));
 }
 
+export function formatTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-NG", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
 export function formatRelative(iso: string): string {
   const date = new Date(iso);
   const now = new Date();

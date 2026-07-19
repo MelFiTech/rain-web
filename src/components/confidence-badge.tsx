@@ -23,7 +23,7 @@ export function ConfidenceBadge({
     <div className={cn("inline-flex flex-col gap-1", className)}>
       <span
         className={cn(
-          "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium w-fit",
+          "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium w-fit whitespace-nowrap",
           levelStyles[confidence.level]
         )}
       >

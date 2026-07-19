@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
+import { RainMark } from "@/components/ui/logo";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Header } from "./header";
@@ -35,9 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-ink text-background flex items-center justify-center font-semibold">
-            R
-          </div>
+          <RainMark className="h-10 w-10" />
           <div className="h-1 w-16 rounded-full skeleton" />
         </div>
       </div>

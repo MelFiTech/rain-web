@@ -18,6 +18,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { RainMark } from "@/components/ui/logo";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -124,9 +125,7 @@ export function Sidebar({ open, onClose, collapsed, onToggle }: SidebarProps) {
           className="flex items-center gap-2.5 group"
           title="Rain"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-background text-sm font-semibold tracking-tight">
-            R
-          </div>
+          <RainMark className="h-8 w-8 shrink-0" />
           {!isCollapsed && (
             <div className="leading-tight">
               <div className="text-sm font-semibold text-ink tracking-tight">

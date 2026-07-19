@@ -213,7 +213,11 @@ export default function WalletPage() {
                 {fundError}
               </p>
             )}
-            <Button type="submit" className="w-full">
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={!amount || Number(amount) < 100}
+            >
               Continue
             </Button>
           </form>

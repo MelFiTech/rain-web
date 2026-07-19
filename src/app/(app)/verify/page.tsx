@@ -228,7 +228,14 @@ function VerifyPageContent() {
             </div>
           )}
 
-          <Button type="submit" className="w-full" size="lg">
+          <Button
+            type="submit"
+            className="w-full"
+            size="lg"
+            disabled={
+              !identifier.trim() || (idType === "account_number" && !bank)
+            }
+          >
             Continue
           </Button>
         </form>
@@ -417,24 +424,28 @@ function ResultView({
         </div>
       </div>
 
-      <div className="mt-8 flex flex-col sm:flex-row gap-2 no-print">
+      <div className="mt-8 flex items-center gap-2 no-print">
         {isMatch && (
           <>
-            <Button variant="secondary" onClick={handlePrint} className="flex-1">
+            <button
+              onClick={handlePrint}
+              title="Print report"
+              aria-label="Print report"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-card text-muted hover:bg-hover hover:text-foreground transition-colors cursor-pointer"
+            >
               <Printer className="h-4 w-4" />
-              Print
-            </Button>
-            <Button
-              variant="secondary"
+            </button>
+            <button
               onClick={handleDownload}
-              className="flex-1"
+              title="Download report"
+              aria-label="Download report"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-card text-muted hover:bg-hover hover:text-foreground transition-colors cursor-pointer"
             >
               <Download className="h-4 w-4" />
-              Download
-            </Button>
+            </button>
           </>
         )}
-        <Button onClick={onAgain} className="flex-1">
+        <Button onClick={onAgain} className="flex-1 whitespace-nowrap">
           Run another verification
         </Button>
       </div>

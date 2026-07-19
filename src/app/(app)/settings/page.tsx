@@ -2,12 +2,13 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { SkeletonForm } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/auth-context";
 import { formatRelative } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   changePassword,
   fetchSettings,
@@ -24,7 +25,46 @@ import { Building2, LogOut, Monitor } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
+type SettingsTab = "profile" | "notifications" | "security";
+
+const TABS: { id: SettingsTab; label: string }[] = [
+  { id: "profile", label: "Profile" },
+  { id: "notifications", label: "Notifications" },
+  { id: "security", label: "Security" },
+];
+
+/* Two-column settings row: sticky context on the left, the card fills the rest */
+function SettingsSection({
+  title,
+  description,
+  action,
+  children,
+}: {
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 lg:gap-10 items-start">
+      <div className="lg:sticky lg:top-0">
+        <h3 className="text-base font-semibold text-ink tracking-tight">
+          {title}
+        </h3>
+        {description && (
+          <p className="mt-1.5 text-sm text-muted leading-relaxed">
+            {description}
+          </p>
+        )}
+        {action && <div className="mt-4">{action}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
+  const [tab, setTab] = useState<SettingsTab>("profile");
   const { logout } = useAuth();
   const router = useRouter();
   const [settings, setSettings] = useState<InstitutionSettings | null>(null);
@@ -146,7 +186,7 @@ export default function SettingsPage() {
 
   if (loading || !settings || !prefs) {
     return (
-      <div className="max-w-2xl space-y-6">
+      <div className="space-y-6">
         <Card>
           <SkeletonForm />
         </Card>
@@ -155,12 +195,30 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-8">
+      <div className="flex items-center gap-1.5">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "h-9 px-4 rounded-lg text-sm transition-colors cursor-pointer",
+              tab === t.id
+                ? "bg-card border border-line text-ink font-medium"
+                : "border border-transparent text-muted hover:text-foreground hover:bg-hover/60"
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "profile" && (
+      <SettingsSection
+        title="Institution profile"
+        description="Details visible to other institutions on the Rain network."
+      >
       <Card>
-        <CardHeader
-          title="Institution profile"
-          description="Details visible on your Rain account"
-        />
         <form onSubmit={saveProfile} className="space-y-4">
           <div className="flex items-center gap-4 mb-2">
             <div className="h-16 w-16 rounded-2xl bg-hover flex items-center justify-center">
@@ -209,14 +267,24 @@ export default function SettingsPage() {
           {profileMsg && (
             <p className="text-sm text-muted">{profileMsg}</p>
           )}
-          <Button type="submit" loading={profileSaving}>
+          <Button
+            type="submit"
+            loading={profileSaving}
+            disabled={!name.trim() || !email.trim()}
+          >
             Save profile
           </Button>
         </form>
       </Card>
+      </SettingsSection>
+      )}
 
+      {tab === "security" && (
+      <SettingsSection
+        title="Change password"
+        description="Use at least 8 characters. You'll stay signed in on this device."
+      >
       <Card>
-        <CardHeader title="Change password" />
         <form onSubmit={savePassword} className="space-y-4">
           <Input
             label="Current password"
@@ -248,17 +316,24 @@ export default function SettingsPage() {
           {passwordMsg && (
             <p className="text-sm text-muted">{passwordMsg}</p>
           )}
-          <Button type="submit" loading={passwordSaving}>
+          <Button
+            type="submit"
+            loading={passwordSaving}
+            disabled={!currentPassword || !newPassword || !confirmPassword}
+          >
             Update password
           </Button>
         </form>
       </Card>
+      </SettingsSection>
+      )}
 
+      {tab === "notifications" && (
+      <SettingsSection
+        title="Notification preferences"
+        description="Choose how Rain keeps you and your compliance team informed."
+      >
       <Card>
-        <CardHeader
-          title="Notification preferences"
-          description="Choose how you want to be notified"
-        />
         <div className="space-y-3">
           {(
             [
@@ -280,7 +355,7 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setPrefs((p) => (p ? { ...p, [key]: e.target.checked } : p))
                 }
-                className="h-4 w-4 rounded accent-ink"
+                className="checkbox"
               />
             </label>
           ))}
@@ -292,22 +367,25 @@ export default function SettingsPage() {
           Save preferences
         </Button>
       </Card>
+      </SettingsSection>
+      )}
 
+      {tab === "security" && (
+      <SettingsSection
+        title="Login sessions"
+        description="Devices currently signed in to your account."
+        action={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setLogoutAllOpen(true)}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Log out all
+          </Button>
+        }
+      >
       <Card>
-        <CardHeader
-          title="Login sessions"
-          description="Devices currently signed in to your account"
-          action={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setLogoutAllOpen(true)}
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Log out all
-            </Button>
-          }
-        />
         <div className="space-y-1">
           {settings.sessions.map((s) => (
             <div
@@ -341,6 +419,8 @@ export default function SettingsPage() {
           ))}
         </div>
       </Card>
+      </SettingsSection>
+      )}
 
       <ConfirmDialog
         open={logoutAllOpen}

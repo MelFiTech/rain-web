@@ -9,7 +9,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
   options: { value: string; label: string }[];
   placeholder?: string;
-  variant?: "filled" | "outline";
+  variant?: "filled" | "outline" | "ghost";
   fieldSize?: "md" | "sm";
 }
 
@@ -31,7 +31,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const inputId = id || props.name;
     return (
       // Width overrides ride on the wrapper so the chevron stays inside the field
-      <div className={cn("w-full", className)}>
+      <div className={cn(!className && "w-full", className)}>
         {label && (
           <label
             htmlFor={inputId}
@@ -52,7 +52,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 : "h-11 pl-3.5 pr-9 rounded-xl",
               variant === "filled"
                 ? "bg-hover focus:bg-active"
-                : "bg-card border border-line hover:bg-hover/50 focus:border-subtle",
+                : variant === "ghost"
+                  ? "bg-transparent border border-transparent text-muted hover:text-foreground hover:bg-hover/60 focus:border-line"
+                  : "bg-card border border-line hover:bg-hover/50 focus:border-subtle",
               error && "ring-1 ring-subtle"
             )}
             {...props}

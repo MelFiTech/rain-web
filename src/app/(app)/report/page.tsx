@@ -23,7 +23,7 @@ const emptyForm: SubmitReportRequest = {
   email: "",
   bvn: "",
   nin: "",
-  category: "fraud",
+  category: "scam",
   description: "",
   incidentDate: "",
   amountInvolved: undefined,
@@ -293,7 +293,10 @@ export default function ReportPage() {
               onChange={(e) =>
                 update("category", e.target.value as ReportCategory)
               }
-              options={REPORT_CATEGORIES.map((c) => ({
+              options={REPORT_CATEGORIES.filter(
+                // Generic "fraud" overlaps the specific types — keep it out of new reports
+                (c) => c.value !== "fraud"
+              ).map((c) => ({
                 value: c.value,
                 label: c.label,
               }))}
@@ -340,7 +343,23 @@ export default function ReportPage() {
             </div>
           )}
 
-          <Button type="submit" size="lg" className="w-full sm:w-auto">
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full sm:w-auto"
+            disabled={
+              !(
+                form.accountNumber?.trim() ||
+                form.phone?.trim() ||
+                form.email?.trim() ||
+                form.bvn?.trim() ||
+                form.nin?.trim()
+              ) ||
+              !form.category ||
+              (form.description?.trim().length ?? 0) < 10 ||
+              !form.incidentDate
+            }
+          >
             Review report
           </Button>
         </form>

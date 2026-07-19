@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RainMark } from "@/components/ui/logo";
 import { useAuth } from "@/contexts/auth-context";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -44,9 +45,7 @@ export default function LoginPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="h-10 w-10 rounded-xl bg-ink text-background flex items-center justify-center font-semibold">
-          R
-        </div>
+        <RainMark className="h-10 w-10" />
       </div>
     );
   }
@@ -60,7 +59,8 @@ export default function LoginPage() {
       {/* Left — sign-in form, inset surface container like the app shell */}
       <div className="relative flex-1 flex p-2 sm:p-2.5">
         <div className="flex-1 flex flex-col min-w-0 bg-surface rounded-2xl border border-line shadow-[0_1px_2px_rgba(20,10,15,0.03),0_12px_32px_-12px_rgba(20,10,15,0.08)] overflow-y-auto px-6 sm:px-12 py-8 sm:py-10 animate-fade-in">
-        <div className="w-full max-w-[400px] mx-auto">
+        <div className="w-full max-w-[400px] mx-auto flex items-center gap-2.5">
+          <RainMark className="h-8 w-8" />
           <span className="font-geist text-xl font-semibold tracking-tight text-ink">
             Rain
           </span>
@@ -121,7 +121,7 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded accent-primary"
+                  className="checkbox"
                 />
                 <span className="text-sm text-muted">Remember me</span>
               </label>
@@ -147,7 +147,13 @@ export default function LoginPage() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" size="lg" loading={loading}>
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              loading={loading}
+              disabled={!email.trim() || !password}
+            >
               {loading ? "Signing in…" : "Log in"}
             </Button>
           </form>

@@ -40,30 +40,34 @@ export function Modal({
   if (!open) return null;
 
   const sizes = {
-    sm: "max-w-md",
-    md: "max-w-lg",
-    lg: "max-w-2xl",
+    sm: "w-[min(calc(100vw-16px),24rem)]",
+    md: "w-[min(calc(100vw-16px),28rem)]",
+    lg: "w-[min(calc(100vw-16px),34rem)]",
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-50">
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
         onClick={onClose}
         aria-hidden
       />
+      {/* Floating right drawer — inset from top/right/bottom like the app shell */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
         className={cn(
-          "relative w-full bg-surface rounded-t-2xl sm:rounded-2xl shadow-xl animate-fade-in max-h-[90vh] overflow-y-auto",
+          "absolute inset-y-2 right-2 sm:inset-y-2.5 sm:right-2.5 flex flex-col",
+          "bg-surface rounded-2xl border border-line overflow-hidden",
+          "shadow-[0_1px_2px_rgba(20,10,15,0.06),0_24px_64px_-16px_rgba(10,5,8,0.55)]",
+          "animate-drawer-in",
           sizes[size],
           className
         )}
       >
         {(title || description) && (
-          <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-2">
+          <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-2 shrink-0">
             <div>
               {title && (
                 <h2
@@ -86,7 +90,7 @@ export function Modal({
             </button>
           </div>
         )}
-        <div className="px-6 pb-6 pt-2">{children}</div>
+        <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2">{children}</div>
       </div>
     </div>
   );

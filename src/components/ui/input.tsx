@@ -7,7 +7,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
-  variant?: "filled" | "outline";
+  variant?: "filled" | "outline" | "ghost";
   fieldSize?: "md" | "sm";
   /** Width/layout overrides for the outer wrapper (className styles the input itself) */
   containerClassName?: string;
@@ -47,7 +47,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             fieldSize === "sm" ? "h-9 px-3 rounded-lg" : "h-11 px-3.5 rounded-xl",
             variant === "filled"
               ? "bg-hover focus:outline-none focus:bg-active"
-              : "bg-card border border-line hover:bg-hover/50 focus:outline-none focus:border-subtle",
+              : variant === "ghost"
+                ? "bg-transparent border border-transparent text-muted hover:text-foreground hover:bg-hover/60 focus:outline-none focus:border-line"
+                : "bg-card border border-line hover:bg-hover/50 focus:outline-none focus:border-subtle",
             error && "ring-1 ring-subtle",
             className
           )}
