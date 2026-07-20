@@ -47,11 +47,7 @@ export function ReportCategoriesPanel({
               {total}
             </p>
             <p className="mt-1.5 text-xs text-muted leading-relaxed">
-              Across{" "}
-              <span className="font-medium text-foreground">
-                {categories.length}
-              </span>{" "}
-              categories this period
+              By category this period
             </p>
           </div>
 
@@ -81,29 +77,13 @@ export function ReportCategoriesPanel({
       <div className="relative space-y-4">
         {categories.map((c, i) => {
           const palette = REPORT_CATEGORY_COLORS[i % REPORT_CATEGORY_COLORS.length];
-          const pct = total > 0 ? Math.round((c.count / total) * 100) : 0;
           const width = (c.count / max) * 100;
 
           return (
             <div key={c.label}>
-              <div className="mb-2 flex items-center gap-2">
-                <span
-                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-semibold tabular-nums text-ink"
-                  style={{
-                    background: `${palette.bar}22`,
-                    color: palette.bar,
-                  }}
-                >
-                  {i + 1}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                  {c.label}
-                </span>
-                <span className="text-xs tabular-nums text-muted">{pct}%</span>
-                <span className="w-8 text-right text-sm font-semibold tabular-nums text-ink">
-                  {c.count}
-                </span>
-              </div>
+              <p className="mb-2 truncate text-sm font-medium text-foreground">
+                {c.label}
+              </p>
               <div className="h-2 overflow-hidden rounded-full bg-hover/80">
                 <div
                   className="h-full rounded-full transition-[width] duration-500 ease-out"

@@ -62,6 +62,12 @@ export default function DocsWebhooksPage() {
     "confidence": {
       "level": "high",
       "independent_source_count": 7
+    },
+    "recommendation": {
+      "action": "decline",
+      "severity": "high",
+      "title": "Strong adverse signal",
+      "summary": "7 independent institutions reported this identifier."
     }
   }
 }`}

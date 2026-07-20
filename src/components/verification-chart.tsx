@@ -49,7 +49,27 @@ const CHART_DATA = [
   { week: "Jun 29", verifications: 68, matches: 24 },
   { week: "Jul 6", verifications: 72, matches: 23 },
   { week: "Jul 13", verifications: 78, matches: 27 },
-];
+] as const;
+
+/** One tick per month at the first week that month appears in the series. */
+function monthAxisTicks(
+  data: ReadonlyArray<{ week: string }>
+): string[] {
+  const ticks: string[] = [];
+  let lastMonth = "";
+  for (const row of data) {
+    const month = row.week.split(" ")[0] ?? row.week;
+    if (month !== lastMonth) {
+      ticks.push(row.week);
+      lastMonth = month;
+    }
+  }
+  return ticks;
+}
+
+function monthLabel(week: string) {
+  return week.split(" ")[0] ?? week;
+}
 
 const chartConfig = {
   verifications: {
@@ -184,8 +204,8 @@ export function VerificationChart() {
       >
         <AreaChart
           accessibilityLayer
-          data={CHART_DATA}
-          margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+          data={[...CHART_DATA]}
+          margin={{ top: 8, right: 12, left: 4, bottom: 4 }}
         >
           <CartesianGrid vertical={false} />
           <YAxis hide domain={[0, "auto"]} />
@@ -193,10 +213,11 @@ export function VerificationChart() {
             dataKey="week"
             tickLine={false}
             axisLine={false}
-            tickMargin={6}
-            interval={2}
+            tickMargin={10}
+            ticks={monthAxisTicks(CHART_DATA)}
             tick={{ fill: "var(--subtle)", fontSize: 11 }}
-            tickFormatter={(value: string) => value.split(" ")[0] ?? value}
+            tickFormatter={monthLabel}
+            padding={{ left: 8, right: 8 }}
           />
           <ChartTooltip
             labelFormatter={(week) => `Week of ${week}`}

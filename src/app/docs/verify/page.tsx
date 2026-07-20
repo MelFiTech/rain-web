@@ -121,6 +121,12 @@ Authorization: Bearer rain_live_...
     "label": "High · 7",
     "description": "7 independent institutions reported this identifier."
   },
+  "recommendation": {
+    "action": "decline",
+    "severity": "high",
+    "title": "Strong adverse signal",
+    "summary": "7 independent institutions reported this identifier. Decline or hold the application for manual compliance review."
+  },
   "independent_source_count": 7,
   "total_reports": 12,
   "categories": ["fraud", "mule_account"],
@@ -139,6 +145,12 @@ Authorization: Bearer rain_live_...
   "masked_identifier": "*******1188",
   "result": "no_match",
   "confidence": null,
+  "recommendation": {
+    "action": "proceed",
+    "severity": "none",
+    "title": "No adverse signals",
+    "summary": "Rain found no matching reports in the network. Continue with your standard onboarding and KYC checks."
+  },
   "independent_source_count": 0,
   "created_at": "2026-03-20T09:16:11Z"
 }`,
@@ -149,7 +161,16 @@ Authorization: Bearer rain_live_...
         <Callout title="Interpret results">
           A <code className="font-mono text-[13px]">no_match</code> means Rain
           has no qualifying network signal. It is not a guarantee that the customer is
-          safe. Combine with your own KYC, device, and transaction rules.
+          safe. Combine with your own KYC, device, and transaction rules. Every
+          verification includes a <code className="font-mono text-[13px]">recommendation</code>{" "}
+          with <code className="font-mono text-[13px]">action</code> (
+          <code className="font-mono text-[13px]">proceed</code>,{" "}
+          <code className="font-mono text-[13px]">review</code>, or{" "}
+          <code className="font-mono text-[13px]">decline</code>),{" "}
+          <code className="font-mono text-[13px]">severity</code>,{" "}
+          <code className="font-mono text-[13px]">title</code>, and{" "}
+          <code className="font-mono text-[13px]">summary</code> to guide onboarding
+          decisions.
         </Callout>
 
         <h2 id="list" className="scroll-mt-24">
@@ -185,6 +206,12 @@ Authorization: Bearer rain_live_...`}
         "independent_source_count": 7,
         "label": "High · 7",
         "description": "7 independent institutions reported this identifier."
+      },
+      "recommendation": {
+        "action": "decline",
+        "severity": "high",
+        "title": "Strong adverse signal",
+        "summary": "7 independent institutions reported this identifier."
       },
       "independent_source_count": 7,
       "created_at": "2026-03-20T09:15:02Z"
@@ -235,6 +262,12 @@ Authorization: Bearer rain_live_...`}
     "independent_source_count": 7,
     "label": "High · 7",
     "description": "7 independent institutions reported this identifier."
+  },
+  "recommendation": {
+    "action": "decline",
+    "severity": "high",
+    "title": "Strong adverse signal",
+    "summary": "7 independent institutions reported this identifier."
   },
   "independent_source_count": 7,
   "total_reports": 12,

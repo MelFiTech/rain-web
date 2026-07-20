@@ -7,7 +7,14 @@ import { useToast } from "@/contexts/toast-context";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { categoryLabel, formatDate, formatNaira } from "@/lib/format";
-import { submitReport } from "@/services/reports";
+import {
+  isValidOptionalNationalId,
+  NATIONAL_ID_DIGIT_LENGTH,
+  nationalIdDigits,
+  sanitizeNationalIdInput,
+} from "@/lib/national-id";
+import { ApiRequestError } from "@/lib/api-client";
+import { submitReport, validateReportRequest } from "@/services/reports";
 import type { ReportCategory, ReportRecord, SubmitReportRequest } from "@/types";
 import { NIGERIAN_BANKS, REPORT_CATEGORIES } from "@/types";
 import { AlertCircle, CheckCircle2, FileWarning } from "lucide-react";
@@ -70,26 +77,7 @@ export function ReportUserSheet({
   };
 
   const validateLocal = (): boolean => {
-    const errors: Record<string, string> = {};
-    const hasId = Boolean(
-      form.accountNumber?.trim() ||
-        form.phone?.trim() ||
-        form.email?.trim() ||
-        form.bvn?.trim() ||
-        form.nin?.trim()
-    );
-    if (!hasId) {
-      errors.identifier =
-        "At least one identifier is required (account, phone, email, BVN, or NIN).";
-    }
-    if (!form.category) errors.category = "Category is required.";
-    if (!form.description?.trim() || form.description.trim().length < 10) {
-      errors.description = "Description must be at least 10 characters.";
-    }
-    if (!form.incidentDate) errors.incidentDate = "Incident date is required.";
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      errors.email = "Enter a valid email address.";
-    }
+    const errors = validateReportRequest(form);
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
       toast.error(Object.values(errors)[0]!);
@@ -103,6 +91,19 @@ export function ReportUserSheet({
   };
 
   const confirmSubmit = async () => {
+    const errors = validateReportRequest({
+      ...form,
+      amountInvolved: form.amountInvolved
+        ? Number(form.amountInvolved)
+        : undefined,
+    });
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      toast.error(Object.values(errors)[0]!);
+      setStep("form");
+      return;
+    }
+
     setStep("loading");
     try {
       const res = await submitReport({
@@ -117,12 +118,22 @@ export function ReportUserSheet({
         toast.success("Report submitted to the Rain network.");
         await onSubmitted?.(res.report);
       } else {
-        setFieldErrors(res.fieldErrors || {});
-        toast.error(res.error);
+        const errors = res.fieldErrors ?? {};
+        setFieldErrors(errors);
+        toast.error(
+          res.error ||
+            Object.values(errors)[0] ||
+            "Could not submit report. Check the form and try again."
+        );
         setStep("form");
       }
-    } catch {
-      toast.error("Failed to submit report. Please try again.");
+    } catch (e) {
+      if (e instanceof ApiRequestError && e.fieldErrors) {
+        setFieldErrors(e.fieldErrors);
+        toast.error(e.message);
+      } else {
+        toast.error("Failed to submit report. Please try again.");
+      }
       setStep("form");
     }
   };
@@ -266,6 +277,14 @@ export function ReportUserSheet({
           </div>
 
           <form onSubmit={goReview} className="space-y-4">
+            {fieldErrors.identifier ? (
+              <p
+                className="rounded-xl border border-bad-fg/25 bg-bad-bg px-3 py-2 text-sm text-bad-fg"
+                role="alert"
+              >
+                {fieldErrors.identifier}
+              </p>
+            ) : null}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
                 label="Full name (optional)"
@@ -286,12 +305,14 @@ export function ReportUserSheet({
                 onChange={(e) => update("accountNumber", e.target.value)}
                 placeholder="10-digit account number"
                 inputMode="numeric"
+                error={fieldErrors.accountNumber}
               />
               <Input
                 label="Phone number"
                 value={form.phone || ""}
                 onChange={(e) => update("phone", e.target.value)}
                 placeholder="08012345678"
+                error={fieldErrors.phone}
               />
               <Input
                 label="Email address"
@@ -304,16 +325,28 @@ export function ReportUserSheet({
               <Input
                 label="BVN"
                 value={form.bvn || ""}
-                onChange={(e) => update("bvn", e.target.value)}
+                onChange={(e) =>
+                  update("bvn", sanitizeNationalIdInput(e.target.value))
+                }
                 placeholder="11-digit BVN"
                 inputMode="numeric"
+                autoComplete="off"
+                maxLength={NATIONAL_ID_DIGIT_LENGTH}
+                hint={`${nationalIdDigits(form.bvn).length}/${NATIONAL_ID_DIGIT_LENGTH} digits`}
+                error={fieldErrors.bvn}
               />
               <Input
                 label="NIN"
                 value={form.nin || ""}
-                onChange={(e) => update("nin", e.target.value)}
+                onChange={(e) =>
+                  update("nin", sanitizeNationalIdInput(e.target.value))
+                }
                 placeholder="11-digit NIN"
                 inputMode="numeric"
+                autoComplete="off"
+                maxLength={NATIONAL_ID_DIGIT_LENGTH}
+                hint={`${nationalIdDigits(form.nin).length}/${NATIONAL_ID_DIGIT_LENGTH} digits`}
+                error={fieldErrors.nin}
               />
               <Select
                 label="Report category"
@@ -371,7 +404,9 @@ export function ReportUserSheet({
                 ) ||
                 !form.category ||
                 (form.description?.trim().length ?? 0) < 10 ||
-                !form.incidentDate
+                !form.incidentDate ||
+                !isValidOptionalNationalId(form.bvn) ||
+                !isValidOptionalNationalId(form.nin)
               }
             >
               Review report

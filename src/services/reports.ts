@@ -1,4 +1,8 @@
 import { ApiRequestError, apiGet, apiPost, isApiConfigured } from "@/lib/api-client";
+import {
+  nationalIdDigits,
+  validateNationalIdField,
+} from "@/lib/national-id";
 import type {
   PaginatedResult,
   ReportFilters,
@@ -6,12 +10,10 @@ import type {
   SubmitReportRequest,
 } from "@/types";
 
-export async function submitReport(
+/** Shared client validation for report submit (form + API call). */
+export function validateReportRequest(
   request: SubmitReportRequest
-): Promise<
-  | { success: true; report: ReportRecord }
-  | { success: false; error: string; fieldErrors?: Record<string, string> }
-> {
+): Record<string, string> {
   const fieldErrors: Record<string, string> = {};
 
   const hasIdentifier = Boolean(
@@ -40,21 +42,19 @@ export async function submitReport(
     fieldErrors.incidentDate = "Incident date is required.";
   }
 
-  if (request.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(request.email)) {
+  if (request.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(request.email)) {
     fieldErrors.email = "Enter a valid email address.";
   }
 
-  const bvn = request.bvn?.replace(/\D/g, "") ?? "";
-  const nin = request.nin?.replace(/\D/g, "") ?? "";
+  const bvn = nationalIdDigits(request.bvn);
+  const nin = nationalIdDigits(request.nin);
   const account = request.accountNumber?.replace(/\D/g, "") ?? "";
   const phone = request.phone?.replace(/\D/g, "") ?? "";
 
-  if (bvn && bvn.length !== 11) {
-    fieldErrors.bvn = "BVN must be 11 digits.";
-  }
-  if (nin && nin.length !== 11) {
-    fieldErrors.nin = "NIN must be 11 digits.";
-  }
+  const bvnError = validateNationalIdField(request.bvn, "BVN");
+  if (bvnError) fieldErrors.bvn = bvnError;
+  const ninError = validateNationalIdField(request.nin, "NIN");
+  if (ninError) fieldErrors.nin = ninError;
   if (account && account.length !== 10) {
     fieldErrors.accountNumber = "Account number must be 10 digits.";
   }
@@ -62,10 +62,26 @@ export async function submitReport(
     fieldErrors.phone = "Enter a valid Nigerian phone number.";
   }
 
+  return fieldErrors;
+}
+
+function firstFieldErrorMessage(fieldErrors: Record<string, string>): string {
+  const first = Object.values(fieldErrors)[0];
+  return first ?? "Please fix the highlighted fields.";
+}
+
+export async function submitReport(
+  request: SubmitReportRequest
+): Promise<
+  | { success: true; report: ReportRecord }
+  | { success: false; error: string; fieldErrors?: Record<string, string> }
+> {
+  const fieldErrors = validateReportRequest(request);
+
   if (Object.keys(fieldErrors).length > 0) {
     return {
       success: false,
-      error: "Please fix the highlighted fields.",
+      error: firstFieldErrorMessage(fieldErrors),
       fieldErrors,
     };
   }
@@ -86,8 +102,8 @@ export async function submitReport(
       accountNumber: request.accountNumber?.replace(/\D/g, "") || undefined,
       phone: request.phone?.replace(/\D/g, "") || undefined,
       email: request.email?.trim().toLowerCase() || undefined,
-      bvn: request.bvn?.replace(/\D/g, "") || undefined,
-      nin: request.nin?.replace(/\D/g, "") || undefined,
+      bvn: nationalIdDigits(request.bvn) || undefined,
+      nin: nationalIdDigits(request.nin) || undefined,
       description: request.description.trim(),
     };
     const result = await apiPost<{

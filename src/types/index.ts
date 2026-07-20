@@ -106,6 +106,22 @@ export interface ConfidenceInfo {
   description: string;
 }
 
+export type RecommendationAction = "proceed" | "review" | "decline";
+
+export type RecommendationSeverity =
+  | "none"
+  | "low"
+  | "medium"
+  | "high"
+  | "critical";
+
+export interface VerificationRecommendation {
+  action: RecommendationAction;
+  severity: RecommendationSeverity;
+  title: string;
+  summary: string;
+}
+
 export interface VerificationRecord {
   id: string;
   reference: string;
@@ -113,6 +129,7 @@ export interface VerificationRecord {
   maskedIdentifier: string;
   result: VerificationResult;
   confidence: ConfidenceInfo | null;
+  recommendation?: VerificationRecommendation | null;
   independentSourceCount: number;
   totalReports?: number;
   categories?: ReportCategory[];

@@ -1,5 +1,6 @@
 "use client";
 
+import { RecommendationPanel } from "@/components/recommendation-panel";
 import {
   ConfidenceBadge,
   ConfidenceText,
@@ -17,6 +18,7 @@ import {
   formatNaira,
   identifierTypeLabel,
 } from "@/lib/format";
+import { resolveVerificationRecommendation } from "@/lib/recommendation";
 import { getVerification, verifyUser } from "@/services/verification";
 import { fetchWalletBalance } from "@/services/wallet";
 import type { IdentifierType, VerificationRecord } from "@/types";
@@ -315,6 +317,7 @@ function ResultBody({
   onAgain: () => void;
 }) {
   const isMatch = result.result === "match";
+  const recommendation = resolveVerificationRecommendation(result);
 
   const handlePrint = () => window.print();
 
@@ -324,6 +327,8 @@ function ResultBody({
       `Reference: ${result.reference}`,
       `Identifier: ${result.maskedIdentifier}`,
       `Result: ${isMatch ? "Reports found" : "No reports found"}`,
+      `Recommendation: ${recommendation.title} (${recommendation.action})`,
+      recommendation.summary,
       result.confidence ? `Confidence: ${result.confidence.description}` : "",
       `Amount charged: ${formatNaira(result.amountCharged)}`,
       `Date: ${formatDateTime(result.createdAt)}`,
@@ -367,6 +372,8 @@ function ResultBody({
           {result.maskedIdentifier}
         </span>
       </div>
+
+      <RecommendationPanel recommendation={recommendation} />
 
       {isMatch && result.confidence && (
         <div className="space-y-3 rounded-xl bg-hover p-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { ConfidenceBadge } from "@/components/confidence-badge";
+import { RecommendationPanel } from "@/components/recommendation-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import {
   formatTime,
   identifierTypeLabel,
 } from "@/lib/format";
+import { resolveVerificationRecommendation } from "@/lib/recommendation";
 import {
   exportVerificationsCsv,
   getVerification,
@@ -349,6 +351,9 @@ function HistoryContent() {
                 <ConfidenceBadge confidence={selected.confidence} />
               )}
             </div>
+            <RecommendationPanel
+              recommendation={resolveVerificationRecommendation(selected)}
+            />
             <div className="grid grid-cols-2 gap-3 text-sm">
               <Detail label="Reference" value={selected.reference} mono />
               <Detail

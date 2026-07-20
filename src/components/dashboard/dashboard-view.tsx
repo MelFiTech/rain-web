@@ -15,6 +15,7 @@ import {
   VerificationChart,
 } from "@/components/verification-chart";
 import { formatNaira, formatRelative, identifierTypeLabel } from "@/lib/format";
+import { resolveVerificationRecommendation } from "@/lib/recommendation";
 import { cn } from "@/lib/utils";
 import type { DashboardSummary, VerificationRecord } from "@/types";
 import { ArrowRight, ShieldCheck, ShieldX } from "lucide-react";
@@ -300,6 +301,23 @@ function VerificationRow({
             Clear
           </span>
         )}
+        {(() => {
+          const rec = resolveVerificationRecommendation(record);
+          if (rec.severity === "none") return null;
+          return (
+            <span
+              className={cn(
+                "max-w-[140px] truncate text-right text-[10px] font-medium leading-tight",
+                rec.severity === "critical" || rec.severity === "high"
+                  ? "text-red-700 dark:text-red-400"
+                  : "text-amber-800 dark:text-amber-300",
+              )}
+              title={rec.summary}
+            >
+              {rec.title}
+            </span>
+          );
+        })()}
       </div>
     </>
   );
