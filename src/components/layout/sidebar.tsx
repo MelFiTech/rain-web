@@ -2,16 +2,13 @@
 
 import { cn } from "@/lib/utils";
 import {
-  Banknote,
   ClipboardList,
   History,
   LayoutDashboard,
   Moon,
   PanelLeft,
   Settings,
-  ShieldAlert,
   Sun,
-  Users,
   Wallet,
   X,
 } from "lucide-react";
@@ -22,12 +19,9 @@ import { RainMark } from "@/components/ui/logo";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/report", label: "Report User", icon: ShieldAlert },
   { href: "/history", label: "Verification History", icon: History },
   { href: "/reports", label: "My Reports", icon: ClipboardList },
   { href: "/wallet", label: "Wallet", icon: Wallet },
-  { href: "/earnings", label: "Earnings", icon: Banknote },
-  { href: "/team", label: "Team", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

@@ -29,8 +29,9 @@
   --violet-bg: rgba(139, 124, 246, 0.14);
 }
 
-/* Light — user opt-in */
-:root[data-theme="light"] {
+/* Light — user opt-in or scoped embed (e.g. landing dashboard preview) */
+:root[data-theme="light"],
+[data-theme="light"] {
   --background: #f4f2f3;
   --foreground: #171717;
   --surface: #fbfafa;

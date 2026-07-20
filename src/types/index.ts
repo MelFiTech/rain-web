@@ -63,6 +63,41 @@ export interface NotificationItem {
   createdAt: string;
 }
 
+/** Real-time-style feed item: a member institution filed a report on the network. */
+export interface NetworkReportEvent {
+  id: string;
+  institutionName: string;
+  category: ReportCategory;
+  maskedIdentifier: string;
+  reference: string;
+  submittedAt: string;
+}
+
+export type PlatformAccountStatus = "active" | "restricted" | "dormant";
+
+/** A customer record on the signed-in institution's own platform. */
+export interface PlatformCustomerRecord {
+  customerId: string;
+  displayName: string;
+  matchedField: IdentifierType;
+  maskedIdentifier: string;
+  onboardedAt: string;
+  status: PlatformAccountStatus;
+}
+
+export type PlatformUserCheckResult =
+  | {
+      matched: true;
+      customer: PlatformCustomerRecord;
+      reportReference: string;
+      checkedAt: string;
+    }
+  | {
+      matched: false;
+      reportReference: string;
+      checkedAt: string;
+    };
+
 export interface ConfidenceInfo {
   level: ConfidenceLevel;
   independentSourceCount: number;
@@ -140,6 +175,16 @@ export interface EarningsSummary {
   records: EarningRecord[];
 }
 
+/** Bank account for earnings payouts — configured in Settings. */
+export interface SettlementBankAccount {
+  accountName: string;
+  bankName: string;
+  accountNumber: string;
+  updatedAt: string;
+}
+
+export type WithdrawEarningsDestination = "wallet" | "bank";
+
 export interface TeamMember {
   id: string;
   name: string;
@@ -166,10 +211,39 @@ export interface NotificationPreferences {
   inAppNotifications: boolean;
 }
 
+export type WebhookEventType =
+  | "verification.completed"
+  | "report.submitted"
+  | "wallet.low_balance";
+
+export interface WebhookEndpoint {
+  id: string;
+  url: string;
+  events: WebhookEventType[];
+  secretPreview: string;
+  enabled: boolean;
+  lastDeliveryAt?: string;
+  lastDeliveryStatus?: "success" | "failed";
+}
+
+export interface ApiKeyInfo {
+  keyPrefix: string;
+  maskedKey: string;
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
+export interface DeveloperSettings {
+  apiKey: ApiKeyInfo;
+  webhooks: WebhookEndpoint[];
+}
+
 export interface InstitutionSettings {
   profile: Institution;
   notificationPreferences: NotificationPreferences;
   sessions: LoginSession[];
+  developer: DeveloperSettings;
+  settlementBank: SettlementBankAccount | null;
 }
 
 export interface DashboardSummary {
@@ -180,6 +254,7 @@ export interface DashboardSummary {
   recentVerifications: VerificationRecord[];
   recentReports: ReportRecord[];
   recentEarnings: EarningRecord[];
+  reportStream: NetworkReportEvent[];
 }
 
 export interface VerifyUserRequest {

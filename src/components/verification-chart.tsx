@@ -1,295 +1,254 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { cn } from "@/lib/utils";
+import { TrendingUp } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+/** Matches landing page pink / violet / sky accents. */
+export const LANDING_CHART = {
+  pink: "#EA4C89",
+  pinkDeep: "#d63f7c",
+  violet: "#7C6CF0",
+  sky: "#79ADE3",
+  skyLight: "#9CC6EE",
+} as const;
 
 export const CHART_SERIES = {
-  verifications: { label: "Verifications", color: "#8B7CF6" },
-  matches: { label: "Confirmed matches", color: "#EA4C89" },
-};
+  verifications: {
+    label: "Verifications",
+    color: LANDING_CHART.sky,
+  },
+  matches: {
+    label: "Confirmed matches",
+    color: LANDING_CHART.pink,
+  },
+} as const;
 
-const DATA = [
-  { label: "Apr 27", verifications: 34, matches: 9 },
-  { label: "May 4", verifications: 41, matches: 12 },
-  { label: "May 11", verifications: 38, matches: 11 },
-  { label: "May 18", verifications: 47, matches: 15 },
-  { label: "May 25", verifications: 52, matches: 14 },
-  { label: "Jun 1", verifications: 49, matches: 17 },
-  { label: "Jun 8", verifications: 58, matches: 19 },
-  { label: "Jun 15", verifications: 63, matches: 18 },
-  { label: "Jun 22", verifications: 60, matches: 22 },
-  { label: "Jun 29", verifications: 68, matches: 24 },
-  { label: "Jul 6", verifications: 72, matches: 23 },
-  { label: "Jul 13", verifications: 78, matches: 27 },
+const CHART_DATA = [
+  { week: "Apr 27", verifications: 34, matches: 9 },
+  { week: "May 4", verifications: 41, matches: 12 },
+  { week: "May 11", verifications: 38, matches: 11 },
+  { week: "May 18", verifications: 47, matches: 15 },
+  { week: "May 25", verifications: 52, matches: 14 },
+  { week: "Jun 1", verifications: 49, matches: 17 },
+  { week: "Jun 8", verifications: 58, matches: 19 },
+  { week: "Jun 15", verifications: 63, matches: 18 },
+  { week: "Jun 22", verifications: 60, matches: 22 },
+  { week: "Jun 29", verifications: 68, matches: 24 },
+  { week: "Jul 6", verifications: 72, matches: 23 },
+  { week: "Jul 13", verifications: 78, matches: 27 },
 ];
 
-const H = 240;
-const PAD = { top: 14, right: 12, bottom: 28, left: 40 };
-const Y_MAX = 80;
-const Y_TICKS = [0, 20, 40, 60, 80];
+const chartConfig = {
+  verifications: {
+    label: CHART_SERIES.verifications.label,
+    color: CHART_SERIES.verifications.color,
+  },
+  matches: {
+    label: CHART_SERIES.matches.label,
+    color: CHART_SERIES.matches.color,
+  },
+} satisfies ChartConfig;
 
-/* Catmull-Rom → cubic bezier for a smooth line through every point */
-function smoothPath(pts: [number, number][]): string {
-  if (pts.length < 2) return "";
-  let d = `M ${pts[0][0]} ${pts[0][1]}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(0, i - 1)];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[Math.min(pts.length - 1, i + 2)];
-    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
-    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
-    d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2[0]} ${p2[1]}`;
-  }
-  return d;
+export function getChartHeadlineStats() {
+  const latest = CHART_DATA[CHART_DATA.length - 1];
+  const prev = CHART_DATA[CHART_DATA.length - 2];
+  const verificationsDelta = latest.verifications - prev.verifications;
+  const matchesDelta = latest.matches - prev.matches;
+  const matchRate = Math.round((latest.matches / latest.verifications) * 100);
+  return { latest, verificationsDelta, matchesDelta, matchRate };
+}
+
+export function ChartLegendPills({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex flex-wrap items-center gap-2", className)}>
+      {Object.values(CHART_SERIES).map((s) => (
+        <span
+          key={s.label}
+          className="inline-flex items-center gap-1.5 rounded-full border border-line bg-hover/40 px-2.5 py-1 text-[11px] font-medium text-muted"
+        >
+          <span
+            className="h-2 w-2 rounded-full ring-2 ring-card"
+            style={{ background: s.color }}
+          />
+          {s.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function ChartHeadlineStrip() {
+  const { latest, verificationsDelta, matchesDelta, matchRate } =
+    getChartHeadlineStats();
+
+  return (
+    <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <HeadlineStat
+        label="Latest week"
+        value={latest.verifications.toString()}
+        sub="Verifications"
+        delta={verificationsDelta}
+        accent={LANDING_CHART.sky}
+      />
+      <HeadlineStat
+        label="Confirmed"
+        value={latest.matches.toString()}
+        sub="Matches"
+        delta={matchesDelta}
+        accent={LANDING_CHART.pink}
+      />
+      <HeadlineStat
+        label="Hit rate"
+        value={`${matchRate}%`}
+        sub="Of latest volume"
+        accent={LANDING_CHART.violet}
+      />
+    </div>
+  );
+}
+
+function HeadlineStat({
+  label,
+  value,
+  sub,
+  delta,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  delta?: number;
+  accent: string;
+}) {
+  return (
+    <div
+      className="rounded-xl border border-line px-3 py-2.5"
+      style={{
+        background: `linear-gradient(135deg, ${accent}14 0%, transparent 55%)`,
+      }}
+    >
+      <p className="text-[10px] font-medium uppercase tracking-wider text-muted">
+        {label}
+      </p>
+      <div className="mt-1 flex items-baseline gap-2">
+        <p className="text-lg font-semibold tabular-nums tracking-tight text-ink">
+          {value}
+        </p>
+        {delta !== undefined && (
+          <span
+            className={cn(
+              "text-[11px] font-medium tabular-nums",
+              delta >= 0 ? "text-ok-fg" : "text-bad-fg"
+            )}
+          >
+            {delta >= 0 ? "+" : ""}
+            {delta}
+          </span>
+        )}
+      </div>
+      <p className="text-[11px] text-subtle">{sub}</p>
+    </div>
+  );
 }
 
 export function VerificationChart() {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  const [hover, setHover] = useState<number | null>(null);
-
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    setWidth(el.offsetWidth); // paint immediately; RO handles later resizes
-    const ro = new ResizeObserver((entries) =>
-      setWidth(entries[0].contentRect.width)
-    );
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const innerW = Math.max(0, width - PAD.left - PAD.right);
-  const innerH = H - PAD.top - PAD.bottom;
-  const stepX = DATA.length > 1 ? innerW / (DATA.length - 1) : 0;
-
-  const x = (i: number) => PAD.left + i * stepX;
-  const y = (v: number) => PAD.top + innerH - (v / Y_MAX) * innerH;
-
-  const vPts: [number, number][] = DATA.map((d, i) => [x(i), y(d.verifications)]);
-  const mPts: [number, number][] = DATA.map((d, i) => [x(i), y(d.matches)]);
-
-  const baseline = PAD.top + innerH;
-  const areaFor = (pts: [number, number][]) =>
-    `${smoothPath(pts)} L ${pts[pts.length - 1][0]} ${baseline} L ${pts[0][0]} ${baseline} Z`;
-
-  const handleMove = (e: React.MouseEvent<SVGRectElement>) => {
-    const rect = wrapRef.current?.getBoundingClientRect();
-    if (!rect || stepX === 0) return;
-    const px = e.clientX - rect.left - PAD.left;
-    const idx = Math.min(
-      DATA.length - 1,
-      Math.max(0, Math.round(px / stepX))
-    );
-    setHover(idx);
-  };
-
-  const hovered = hover !== null ? DATA[hover] : null;
-  // Flip the tooltip to the left of the crosshair past the midpoint
-  const tooltipLeft =
-    hover !== null ? x(hover) + (x(hover) > width / 2 ? -12 : 12) : 0;
+  const { verificationsDelta } = getChartHeadlineStats();
+  const trendPct =
+    CHART_DATA.length >= 2
+      ? (
+          ((CHART_DATA[CHART_DATA.length - 1].verifications -
+            CHART_DATA[CHART_DATA.length - 2].verifications) /
+            CHART_DATA[CHART_DATA.length - 2].verifications) *
+          100
+        ).toFixed(1)
+      : "0";
 
   return (
-    <div ref={wrapRef} className="relative w-full select-none">
-      {width > 0 && (
-        <svg
-          width={width}
-          height={H}
-          role="img"
-          aria-label="Weekly verifications and confirmed matches over the last 12 weeks"
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <ChartContainer
+        config={chartConfig}
+        className="aspect-auto min-h-[240px] w-full flex-1 [&_.recharts-responsive-container]:!h-full"
+      >
+        <AreaChart
+          accessibilityLayer
+          data={CHART_DATA}
+          margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
         >
-          <defs>
-            <linearGradient id="fill-verifications" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="0%"
-                stopColor={CHART_SERIES.verifications.color}
-                stopOpacity="0.22"
+          <CartesianGrid vertical={false} />
+          <YAxis hide domain={[0, "auto"]} />
+          <XAxis
+            dataKey="week"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={6}
+            interval={2}
+            tick={{ fill: "var(--subtle)", fontSize: 11 }}
+            tickFormatter={(value: string) => value.split(" ")[0] ?? value}
+          />
+          <ChartTooltip
+            labelFormatter={(week) => `Week of ${week}`}
+            content={({ active, payload, label }) => (
+              <ChartTooltipContent
+                active={active}
+                payload={
+                  payload as unknown as
+                    | ReadonlyArray<Record<string, unknown>>
+                    | undefined
+                }
+                label={label}
+                indicator="dot"
               />
-              <stop
-                offset="100%"
-                stopColor={CHART_SERIES.verifications.color}
-                stopOpacity="0"
-              />
-            </linearGradient>
-            <linearGradient id="fill-matches" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="0%"
-                stopColor={CHART_SERIES.matches.color}
-                stopOpacity="0.25"
-              />
-              <stop
-                offset="100%"
-                stopColor={CHART_SERIES.matches.color}
-                stopOpacity="0"
-              />
-            </linearGradient>
-          </defs>
-
-          {/* Recessive grid + y labels */}
-          {Y_TICKS.map((t) => (
-            <g key={t}>
-              <line
-                x1={PAD.left}
-                x2={width - PAD.right}
-                y1={y(t)}
-                y2={y(t)}
-                stroke="var(--line)"
-                strokeWidth={1}
-                strokeDasharray={t === 0 ? undefined : "3 5"}
-              />
-              <text
-                x={PAD.left - 10}
-                y={y(t) + 3.5}
-                textAnchor="end"
-                fontSize={11}
-                fill="var(--subtle)"
-              >
-                {t}
-              </text>
-            </g>
-          ))}
-
-          {/* Sparse x labels — every third week */}
-          {DATA.map((d, i) =>
-            i % 3 === 0 ? (
-              <text
-                key={d.label}
-                x={x(i)}
-                y={H - 8}
-                textAnchor="middle"
-                fontSize={11}
-                fill="var(--subtle)"
-              >
-                {d.label}
-              </text>
-            ) : null
-          )}
-
-          {/* Gradient areas under each line */}
-          <path d={areaFor(vPts)} fill="url(#fill-verifications)" />
-          <path d={areaFor(mPts)} fill="url(#fill-matches)" />
-
-          {/* Series lines */}
-          <path
-            d={smoothPath(vPts)}
-            fill="none"
-            stroke={CHART_SERIES.verifications.color}
+            )}
+          />
+          <Area
+            dataKey="verifications"
+            type="monotone"
+            fill="var(--color-verifications)"
+            fillOpacity={0.22}
+            stroke="var(--color-verifications)"
             strokeWidth={2}
-            strokeLinecap="round"
           />
-          <path
-            d={smoothPath(mPts)}
-            fill="none"
-            stroke={CHART_SERIES.matches.color}
+          <Area
+            dataKey="matches"
+            type="monotone"
+            fill="var(--color-matches)"
+            fillOpacity={0.28}
+            stroke="var(--color-matches)"
             strokeWidth={2}
-            strokeLinecap="round"
           />
+        </AreaChart>
+      </ChartContainer>
 
-          {/* Hover layer: crosshair + ringed markers */}
-          {hover !== null && (
-            <g pointerEvents="none">
-              <line
-                x1={x(hover)}
-                x2={x(hover)}
-                y1={PAD.top}
-                y2={baseline}
-                stroke="var(--subtle)"
-                strokeWidth={1}
-                strokeDasharray="3 3"
-                opacity={0.6}
-              />
-              {(
-                [
-                  [vPts, CHART_SERIES.verifications.color],
-                  [mPts, CHART_SERIES.matches.color],
-                ] as [typeof vPts, string][]
-              ).map(([pts, color], k) => (
-                <circle
-                  key={k}
-                  cx={pts[hover][0]}
-                  cy={pts[hover][1]}
-                  r={4.5}
-                  fill={color}
-                  stroke="var(--card)"
-                  strokeWidth={2}
-                />
-              ))}
-            </g>
-          )}
-
-          {/* Hit target covering the plot */}
-          <rect
-            x={PAD.left - 8}
-            y={0}
-            width={innerW + 16}
-            height={H}
-            fill="transparent"
-            onMouseMove={handleMove}
-            onMouseLeave={() => setHover(null)}
-          />
-        </svg>
-      )}
-
-      {/* Glass tooltip */}
-      {hovered && hover !== null && (
-        <div
-          className="pointer-events-none absolute z-10 rounded-xl border border-line bg-glass backdrop-blur-xl px-3 py-2.5 shadow-[0_8px_24px_-8px_rgba(10,5,8,0.5)]"
-          style={{
-            left: tooltipLeft,
-            top: PAD.top,
-            transform: x(hover) > width / 2 ? "translateX(-100%)" : undefined,
-          }}
-        >
-          <p className="text-[11px] font-medium text-muted mb-1.5">
-            Week of {hovered.label}
-          </p>
-          <div className="space-y-1">
-            <p className="flex items-center gap-2 text-xs text-foreground">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ background: CHART_SERIES.verifications.color }}
-              />
-              Verifications
-              <span className="ml-auto pl-4 font-semibold tabular-nums text-ink">
-                {hovered.verifications}
-              </span>
-            </p>
-            <p className="flex items-center gap-2 text-xs text-foreground">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ background: CHART_SERIES.matches.color }}
-              />
-              Matches
-              <span className="ml-auto pl-4 font-semibold tabular-nums text-ink">
-                {hovered.matches}
-              </span>
-            </p>
+      <div className="flex shrink-0 items-start gap-2 border-t border-line pt-3 text-sm">
+        <div className="grid gap-0.5">
+          <div className="flex items-center gap-2 font-medium leading-none text-ink">
+            {verificationsDelta >= 0 ? "Trending up" : "Trending down"} by{" "}
+            {Math.abs(Number(trendPct))}% this week
+            <TrendingUp
+              className={cn(
+                "h-4 w-4",
+                verificationsDelta < 0 && "rotate-180"
+              )}
+            />
           </div>
+          <p className="text-xs leading-none text-muted">
+            {CHART_DATA[0]?.week} – {CHART_DATA[CHART_DATA.length - 1]?.week}
+          </p>
         </div>
-      )}
-
-      {/* Screen-reader table view */}
-      <table className="sr-only">
-        <caption>Weekly verifications and confirmed matches</caption>
-        <thead>
-          <tr>
-            <th>Week</th>
-            <th>Verifications</th>
-            <th>Confirmed matches</th>
-          </tr>
-        </thead>
-        <tbody>
-          {DATA.map((d) => (
-            <tr key={d.label}>
-              <td>{d.label}</td>
-              <td>{d.verifications}</td>
-              <td>{d.matches}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      </div>
     </div>
   );
 }

@@ -1,11 +1,18 @@
 "use client";
 
+import { SettlementBankSettingsPanel } from "@/components/settings/settlement-bank-settings-panel";
+import { ApiKeySettingsPanel } from "@/components/settings/api-key-settings-panel";
+import { TeamSettingsPanel } from "@/components/settings/team-settings-panel";
+import { WebhooksSettingsPanel } from "@/components/settings/webhooks-settings-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
-import { SkeletonForm } from "@/components/ui/skeleton";
+import {
+  SettingsSkeleton,
+  type SettingsSkeletonTab,
+} from "@/components/settings/settings-skeleton";
 import { useAuth } from "@/contexts/auth-context";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -22,15 +29,40 @@ import type {
   NotificationPreferences,
 } from "@/types";
 import { Building2, LogOut, Monitor } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
 
-type SettingsTab = "profile" | "notifications" | "security";
+type SettingsTab =
+  | "profile"
+  | "notifications"
+  | "security"
+  | "team"
+  | "settlement"
+  | "integrations";
+
+const TAB_IDS: SettingsTab[] = [
+  "profile",
+  "notifications",
+  "security",
+  "team",
+  "settlement",
+  "integrations",
+];
+
+function parseTab(value: string | null): SettingsTab {
+  if (value && TAB_IDS.includes(value as SettingsTab)) {
+    return value as SettingsTab;
+  }
+  return "profile";
+}
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: "profile", label: "Profile" },
   { id: "notifications", label: "Notifications" },
   { id: "security", label: "Security" },
+  { id: "team", label: "Team" },
+  { id: "settlement", label: "Settlement bank" },
+  { id: "integrations", label: "API & webhooks" },
 ];
 
 /* Two-column settings row: sticky context on the left, the card fills the rest */
@@ -64,11 +96,22 @@ function SettingsSection({
 }
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<SettingsTab>("profile");
+  return (
+    <Suspense fallback={<SettingsSkeleton tab="profile" />}>
+      <SettingsPageContent />
+    </Suspense>
+  );
+}
+
+function SettingsPageContent() {
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<SettingsTab>(() =>
+    parseTab(searchParams.get("tab"))
+  );
   const { logout } = useAuth();
   const router = useRouter();
   const [settings, setSettings] = useState<InstitutionSettings | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -92,8 +135,11 @@ export default function SettingsPage() {
   const [logoutAllOpen, setLogoutAllOpen] = useState(false);
   const [logoutAllLoading, setLogoutAllLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setInitialLoading(true);
+    }
     try {
       const data = await fetchSettings();
       setSettings(data);
@@ -104,13 +150,24 @@ export default function SettingsPage() {
       setContactName(data.profile.contactName || "");
       setPrefs(data.notificationPreferences);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setInitialLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setTab(parseTab(searchParams.get("tab")));
+  }, [searchParams]);
+
+  const selectTab = (next: SettingsTab) => {
+    setTab(next);
+    router.replace(`/settings?tab=${next}`, { scroll: false });
+  };
 
   const saveProfile = async (e: FormEvent) => {
     e.preventDefault();
@@ -125,7 +182,7 @@ export default function SettingsPage() {
         contactName,
       });
       setProfileMsg("Profile updated.");
-      await load();
+      await load({ silent: true });
     } finally {
       setProfileSaving(false);
     }
@@ -169,7 +226,7 @@ export default function SettingsPage() {
 
   const handleLogoutSession = async (id: string) => {
     await logoutSession(id);
-    await load();
+    await load({ silent: true });
   };
 
   const handleLogoutAll = async () => {
@@ -184,25 +241,22 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading || !settings || !prefs) {
-    return (
-      <div className="space-y-6">
-        <Card>
-          <SkeletonForm />
-        </Card>
-      </div>
-    );
+  if (tab !== "team" && (initialLoading || !settings || !prefs)) {
+    return <SettingsSkeleton tab={tab as SettingsSkeletonTab} />;
   }
+
+  const showProfileTabs =
+    tab === "profile" || tab === "notifications" || tab === "security";
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
         {TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => setTab(t.id)}
+            onClick={() => selectTab(t.id)}
             className={cn(
-              "h-9 px-4 rounded-lg text-sm transition-colors cursor-pointer",
+              "h-9 px-4 rounded-lg text-sm transition-colors cursor-pointer shrink-0",
               tab === t.id
                 ? "bg-card border border-line text-ink font-medium"
                 : "border border-transparent text-muted hover:text-foreground hover:bg-hover/60"
@@ -213,7 +267,52 @@ export default function SettingsPage() {
         ))}
       </div>
 
-      {tab === "profile" && (
+      {tab === "team" && (
+        <SettingsSection
+          title="Team"
+          description="Invite colleagues and control roles for your institution on Rain."
+        >
+          <TeamSettingsPanel />
+        </SettingsSection>
+      )}
+
+      {tab === "settlement" && settings && (
+        <SettingsSection
+          title="Settlement bank"
+          description="Bank account for earnings payouts. Withdrawals to your bank always use this account."
+        >
+          <SettlementBankSettingsPanel
+            account={settings.settlementBank}
+            onUpdated={() => load({ silent: true })}
+          />
+        </SettingsSection>
+      )}
+
+      {tab === "integrations" && settings && (
+        <>
+          <SettingsSection
+            title="API key"
+            description="Authenticate server-to-server requests to the Rain API. Keep keys secret and rotate them if exposed."
+          >
+            <ApiKeySettingsPanel
+              apiKey={settings.developer.apiKey}
+              onUpdated={() => load({ silent: true })}
+            />
+          </SettingsSection>
+
+          <SettingsSection
+            title="Webhooks"
+            description="Rain POSTs signed events to your HTTPS endpoints when activity occurs on your account."
+          >
+            <WebhooksSettingsPanel
+              webhooks={settings.developer.webhooks}
+              onUpdated={() => load({ silent: true })}
+            />
+          </SettingsSection>
+        </>
+      )}
+
+      {showProfileTabs && settings && prefs && tab === "profile" && (
       <SettingsSection
         title="Institution profile"
         description="Details visible to other institutions on the Rain network."
@@ -279,7 +378,7 @@ export default function SettingsPage() {
       </SettingsSection>
       )}
 
-      {tab === "security" && (
+      {showProfileTabs && settings && prefs && tab === "security" && (
       <SettingsSection
         title="Change password"
         description="Use at least 8 characters. You'll stay signed in on this device."
@@ -328,7 +427,7 @@ export default function SettingsPage() {
       </SettingsSection>
       )}
 
-      {tab === "notifications" && (
+      {showProfileTabs && settings && prefs && tab === "notifications" && (
       <SettingsSection
         title="Notification preferences"
         description="Choose how Rain keeps you and your compliance team informed."
@@ -370,7 +469,7 @@ export default function SettingsPage() {
       </SettingsSection>
       )}
 
-      {tab === "security" && (
+      {showProfileTabs && settings && tab === "security" && (
       <SettingsSection
         title="Login sessions"
         description="Devices currently signed in to your account."

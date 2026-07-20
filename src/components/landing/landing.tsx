@@ -1,6 +1,7 @@
 "use client";
 
 import { RainMark } from "@/components/ui/logo";
+import { LandingDashboardPreview } from "@/components/landing/landing-dashboard-preview";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -191,6 +192,9 @@ const BANK_TILES: {
     dy: BANK_ROW_GAP * 2,
   })),
 ];
+
+const LANDING_CTA =
+  "inline-flex h-10 min-w-[9.75rem] items-center justify-center rounded-full px-5 text-[13px] font-medium transition-colors";
 
 function BankIcons() {
   const { w: W, h: H, src } = BANK_ART;
@@ -661,17 +665,15 @@ export function Landing() {
           <div className="flex items-center gap-1.5">
             <Link
               href="/login"
-              className={cn(
-                "flex h-8 items-center rounded-full px-3 text-[13px] font-medium text-black/60 transition-colors hover:text-black/90",
-                scrolled ? "hover:bg-black/5" : "hover:bg-white/30"
-              )}
+              className="inline-flex h-10 items-center justify-center rounded-full px-4 text-[13px] font-medium text-black/60 transition-colors hover:text-black/90 hover:bg-black/5"
             >
               Sign in
             </Link>
             <Link
               href="/request-access"
               className={cn(
-                "flex h-8 items-center rounded-full px-3.5 text-[13px] font-medium transition-colors",
+                LANDING_CTA,
+                "min-w-[9.75rem]",
                 scrolled
                   ? "bg-neutral-900 text-white hover:bg-neutral-700"
                   : "border border-white/50 bg-white/30 text-black/85 shadow-[0_1px_2px_rgba(0,0,0,0.06)] backdrop-blur-sm hover:bg-white/50"
@@ -717,7 +719,7 @@ export function Landing() {
         {/* On wide screens the copy stays vertically centered between the
             nav and the window (window top grows at 35.28vw; the copy takes
             ~45% of that growth so the air above and below stays even) */}
-        <div className="relative z-20 mx-auto flex max-w-[760px] flex-col items-center px-6 pt-[max(144px,calc(15.83vw_-_84px))] text-center">
+        <div className="relative z-20 mx-auto flex max-w-[760px] flex-col items-center px-6 pt-[max(144px,calc(15.83vw_-_84px))] text-center 2xl:pt-[max(128px,calc(9.5vw_-_32px))]">
           <Reveal>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-black/55">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/80" />
@@ -736,16 +738,22 @@ export function Landing() {
             </p>
           </Reveal>
           <Reveal delay={240}>
-            <div className="mt-9 flex items-center gap-3">
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href="/request-access"
-                className="inline-flex h-10 items-center rounded-full bg-white px-4 text-[13px] font-medium text-black/85 shadow-[0_0_0_0.5px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.08),0_8px_20px_-8px_rgba(30,60,120,0.35)] hover:shadow-[0_0_0_0.5px_rgba(0,0,0,0.08),0_2px_4px_rgba(0,0,0,0.1),0_12px_28px_-8px_rgba(30,60,120,0.45)] transition-shadow"
+                className={cn(
+                  LANDING_CTA,
+                  "bg-white text-black/85 shadow-[0_0_0_0.5px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.08),0_8px_20px_-8px_rgba(30,60,120,0.35)] hover:shadow-[0_0_0_0.5px_rgba(0,0,0,0.08),0_2px_4px_rgba(0,0,0,0.1),0_12px_28px_-8px_rgba(30,60,120,0.45)] transition-shadow"
+                )}
               >
                 Request access
               </Link>
               <Link
                 href="/login"
-                className="inline-flex h-10 items-center rounded-full border border-white/50 bg-white/25 px-4 text-[13px] font-medium text-black/75 backdrop-blur-sm transition-colors hover:bg-white/45"
+                className={cn(
+                  LANDING_CTA,
+                  "border border-white/50 bg-white/25 text-black/75 backdrop-blur-sm hover:bg-white/45"
+                )}
               >
                 Sign in
               </Link>
@@ -758,7 +766,7 @@ export function Landing() {
         {/* Dashboard window — Figma: y508, 1100×648 */}
         <div
           ref={windowRef}
-          className="absolute left-1/2 top-[max(508px,35.28vw)] z-10 h-[max(648px,45vw)] w-[min(94vw,max(1100px,76.39vw))] -translate-x-1/2 overflow-hidden rounded-[20px] bg-white/40 shadow-[0_0_0_0.5px_rgba(9,11,12,0.25),0_24px_48px_-12px_rgba(10,30,60,0.4)] backdrop-blur-md will-change-transform"
+          className="absolute left-1/2 top-[max(508px,35.28vw)] z-10 h-[max(648px,45vw)] w-[min(94vw,max(1100px,76.39vw))] -translate-x-1/2 overflow-hidden rounded-[20px] bg-white/35 shadow-[0_0_0_0.5px_rgba(9,11,12,0.12),0_24px_48px_-12px_rgba(10,30,60,0.35)] ring-1 ring-white/50 backdrop-blur-xl backdrop-saturate-150 will-change-transform 2xl:top-[max(360px,24vw)]"
           onMouseMove={(e) => {
             const el = windowRef.current;
             if (!el) return;
@@ -779,14 +787,7 @@ export function Landing() {
             }, 500);
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/landing/dashboard.png"
-            alt="The Rain dashboard — verification activity, report categories, and live network signals"
-            className="block w-full"
-            width={2000}
-            height={1250}
-          />
+          <LandingDashboardPreview />
           {/* Shiny hairline that travels around the window edge */}
           <div className="edge-light" aria-hidden />
         </div>
@@ -809,7 +810,7 @@ export function Landing() {
           twice, natural size, spilling past the hero onto the white page. */}
       <div
         ref={cloudBackRef}
-        className="pointer-events-none absolute left-1/2 top-[max(402px,27.92vw)] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform"
+        className="pointer-events-none absolute left-1/2 top-[max(402px,27.92vw)] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform 2xl:top-[max(254px,16.64vw)]"
         aria-hidden
       >
         <div className="animate-cloud-drift-slow">
@@ -825,7 +826,7 @@ export function Landing() {
       </div>
       <div
         ref={cloudFrontRef}
-        className="pointer-events-none absolute left-1/2 top-[max(506px,35.14vw)] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform"
+        className="pointer-events-none absolute left-1/2 top-[max(506px,35.14vw)] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform 2xl:top-[max(358px,23.86vw)]"
         aria-hidden
       >
         <div className="animate-cloud-drift">
@@ -843,7 +844,7 @@ export function Landing() {
       {/* White gradient — Figma node 42:4937: y1153, h870, fades clouds and
           sky into the white page. */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-[max(1090px,75.69vw)] z-30 h-[max(933px,64.79vw)]"
+        className="pointer-events-none absolute inset-x-0 top-[max(1090px,75.69vw)] z-30 h-[max(933px,64.79vw)] 2xl:top-[max(942px,64.41vw)]"
         style={{
           background:
             "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.24) 5.415%, #ffffff 21.147%)",

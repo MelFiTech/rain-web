@@ -208,15 +208,11 @@ export default function RequestAccessPage() {
                   </Button>
                 </form>
 
-                <p className="mt-5 text-sm text-muted">
-                  Already have access?{" "}
-                  <Link
-                    href="/login"
-                    className="font-medium text-ink hover:text-primary transition-colors"
-                  >
+                <Link href="/login" className="mt-3 block">
+                  <Button type="button" variant="secondary" className="w-full" size="lg">
                     Sign in
-                  </Link>
-                </p>
+                  </Button>
+                </Link>
               </>
             )}
           </div>

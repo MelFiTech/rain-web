@@ -3,7 +3,10 @@ import type {
   DashboardSummary,
   EarningRecord,
   InstitutionSettings,
+  IdentifierType,
+  NetworkReportEvent,
   NotificationItem,
+  ReportCategory,
   ReportRecord,
   TeamMember,
   User,
@@ -57,7 +60,199 @@ export const MOCK_NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
+const STREAM_INSTITUTIONS = [
+  "Guaranty Trust Bank",
+  "Zenith Bank",
+  "Access Bank",
+  "Kuda Microfinance Bank",
+  "Opay",
+  "Moniepoint MFB",
+  "First Bank of Nigeria",
+  "United Bank for Africa",
+  "Stanbic IBTC Bank",
+  "PalmPay",
+  "Fidelity Bank",
+  "Polaris Bank",
+] as const;
+
+const STREAM_IDENTIFIERS = [
+  "******8841",
+  "+234 80* *** 4412",
+  "*******4321",
+  "to***@finmail.ng",
+  "******9912",
+  "******1188",
+  "+234 81* *** 9021",
+  "******3341",
+];
+
+const STREAM_CATEGORIES: ReportCategory[] = [
+  "scam",
+  "mule_account",
+  "fraud",
+  "identity_theft",
+  "loan_fraud",
+  "chargeback_abuse",
+  "suspicious_transaction",
+];
+
+let streamSeq = 100;
+
+export function createNetworkReportEvent(
+  overrides: Partial<NetworkReportEvent> = {}
+): NetworkReportEvent {
+  streamSeq += 1;
+  const institutionName =
+    overrides.institutionName ??
+    STREAM_INSTITUTIONS[streamSeq % STREAM_INSTITUTIONS.length];
+  const category =
+    overrides.category ??
+    STREAM_CATEGORIES[streamSeq % STREAM_CATEGORIES.length];
+  return {
+    id: overrides.id ?? `stream_${streamSeq}`,
+    institutionName,
+    category,
+    maskedIdentifier:
+      overrides.maskedIdentifier ??
+      STREAM_IDENTIFIERS[streamSeq % STREAM_IDENTIFIERS.length],
+    reference: overrides.reference ?? `RPT-2026-${9000 + streamSeq}`,
+    submittedAt: overrides.submittedAt ?? new Date().toISOString(),
+  };
+}
+
+export const MOCK_REPORT_STREAM: NetworkReportEvent[] = [
+  createNetworkReportEvent({
+    id: "stream_1",
+    institutionName: "Guaranty Trust Bank",
+    category: "loan_fraud",
+    maskedIdentifier: "*******5544",
+    reference: "RPT-2026-0912",
+    submittedAt: new Date(Date.now() - 45_000).toISOString(),
+  }),
+  createNetworkReportEvent({
+    id: "stream_2",
+    institutionName: "Opay",
+    category: "scam",
+    maskedIdentifier: "******9912",
+    reference: "RPT-2026-0911",
+    submittedAt: new Date(Date.now() - 120_000).toISOString(),
+  }),
+  createNetworkReportEvent({
+    id: "stream_3",
+    institutionName: "Kuda Microfinance Bank",
+    category: "mule_account",
+    maskedIdentifier: "******3341",
+    reference: "RPT-2026-0910",
+    submittedAt: new Date(Date.now() - 4 * 60_000).toISOString(),
+  }),
+  createNetworkReportEvent({
+    id: "stream_4",
+    institutionName: "Zenith Bank",
+    category: "identity_theft",
+    maskedIdentifier: "+234 80* *** 7721",
+    reference: "RPT-2026-0909",
+    submittedAt: new Date(Date.now() - 9 * 60_000).toISOString(),
+  }),
+  createNetworkReportEvent({
+    id: "stream_5",
+    institutionName: "Moniepoint MFB",
+    category: "fraud",
+    maskedIdentifier: "******1188",
+    reference: "RPT-2026-0908",
+    submittedAt: new Date(Date.now() - 14 * 60_000).toISOString(),
+  }),
+  createNetworkReportEvent({
+    id: "stream_6",
+    institutionName: "Access Bank",
+    category: "suspicious_transaction",
+    maskedIdentifier: "to***@finmail.ng",
+    reference: "RPT-2026-0907",
+    submittedAt: new Date(Date.now() - 22 * 60_000).toISOString(),
+  }),
+  createNetworkReportEvent({
+    id: "stream_7",
+    institutionName: "PalmPay",
+    category: "chargeback_abuse",
+    maskedIdentifier: "+234 81* *** 9021",
+    reference: "RPT-2026-0906",
+    submittedAt: new Date(Date.now() - 31 * 60_000).toISOString(),
+  }),
+  createNetworkReportEvent({
+    id: "stream_8",
+    institutionName: "United Bank for Africa",
+    category: "scam",
+    maskedIdentifier: "******8841",
+    reference: "RPT-2026-0905",
+    submittedAt: new Date(Date.now() - 48 * 60_000).toISOString(),
+  }),
+];
+
 export const walletStore = { balance: 4850 };
+
+const EXTRA_VERIFICATION_TYPES: IdentifierType[] = [
+  "account_number",
+  "phone",
+  "email",
+  "bvn",
+  "nin",
+];
+
+function maskForVerificationType(type: IdentifierType, seed: number): string {
+  const n = String(1000 + seed).slice(-4);
+  switch (type) {
+    case "phone":
+      return `+234 ${80 + (seed % 3)}* *** ${n}`;
+    case "email":
+      return `us${seed}***@mail.ng`;
+    case "bvn":
+    case "nin":
+      return `*******${n}`;
+    default:
+      return `******${n}`;
+  }
+}
+
+function buildExtraMockVerifications(count: number): VerificationRecord[] {
+  return Array.from({ length: count }, (_, i) => {
+    const seq = i + 9;
+    const identifierType =
+      EXTRA_VERIFICATION_TYPES[i % EXTRA_VERIFICATION_TYPES.length];
+    const isMatch = i % 3 !== 0;
+    const sources = isMatch ? (i % 10) + 1 : 0;
+    const createdAt = new Date(
+      Date.now() - (i + 1) * 28 * 60 * 60 * 1000
+    ).toISOString();
+    const maskedIdentifier = maskForVerificationType(identifierType, seq);
+
+    const base: VerificationRecord = {
+      id: `ver_${String(seq).padStart(3, "0")}`,
+      reference: `VER-T${seq}-${String(2000 + i).slice(-4)}`,
+      identifierType,
+      maskedIdentifier,
+      result: isMatch ? "match" : "no_match",
+      confidence: isMatch ? buildConfidence(sources) : null,
+      independentSourceCount: sources,
+      amountCharged: 50,
+      createdAt,
+    };
+
+    if (!isMatch) return base;
+
+    return {
+      ...base,
+      totalReports: sources + 2,
+      categories: (["scam", "mule_account"] as ReportCategory[]).slice(
+        0,
+        1 + (i % 2)
+      ),
+      firstReportedAt: new Date(
+        Date.now() - (i + 40) * 24 * 60 * 60 * 1000
+      ).toISOString(),
+      mostRecentReportAt: createdAt,
+      matchingIdentifiers: [maskedIdentifier],
+    };
+  });
+}
 
 export const MOCK_VERIFICATIONS: VerificationRecord[] = [
   {
@@ -173,7 +368,73 @@ export const MOCK_VERIFICATIONS: VerificationRecord[] = [
     amountCharged: 50,
     createdAt: "2026-07-11T15:55:00Z",
   },
+  ...buildExtraMockVerifications(32),
 ];
+
+const EXTRA_REPORT_CATEGORIES: ReportCategory[] = [
+  "scam",
+  "mule_account",
+  "loan_fraud",
+  "identity_theft",
+  "chargeback_abuse",
+  "suspicious_transaction",
+  "other",
+];
+
+const EXTRA_REPORT_BANKS = [
+  "Kuda Microfinance Bank",
+  "Opay",
+  "Guaranty Trust Bank",
+  "Zenith Bank",
+  "Access Bank",
+  "PalmPay",
+  "Moniepoint MFB",
+  "United Bank for Africa",
+];
+
+const EXTRA_REPORT_NAMES = [
+  "Tunde Bakare",
+  "Ngozi Ibe",
+  "Chinedu Eze",
+  "Yetunde Adebayo",
+  "Samuel Adeyemi",
+  "Amina Yusuf",
+  "David Ojo",
+  "Grace Etim",
+  "Hassan Garba",
+  "Precious Nwankwo",
+];
+
+function buildExtraMockReports(count: number): ReportRecord[] {
+  return Array.from({ length: count }, (_, i) => {
+    const seq = i + 7;
+    const sources = (i % 10) + 1;
+    const category = EXTRA_REPORT_CATEGORIES[i % EXTRA_REPORT_CATEGORIES.length];
+    const bank = EXTRA_REPORT_BANKS[i % EXTRA_REPORT_BANKS.length];
+    const suffix = String(1000 + seq).slice(-4);
+    const submittedAt = new Date(
+      Date.now() - (i + 1) * 36 * 60 * 60 * 1000
+    ).toISOString();
+
+    return {
+      id: `rpt_${String(seq).padStart(3, "0")}`,
+      reference: `RPT-2026-${String(900 + seq).padStart(4, "0")}`,
+      fullName: EXTRA_REPORT_NAMES[i % EXTRA_REPORT_NAMES.length],
+      bank,
+      maskedAccountNumber: `******${suffix}`,
+      maskedPhone: `+234 ${70 + (i % 3)}* *** ${1000 + seq}`,
+      category,
+      description:
+        "Synthetic network report for UI testing — repeated inbound transfers and identity reuse flagged during onboarding review.",
+      incidentDate: submittedAt.slice(0, 10),
+      amountInvolved: 150000 + (i % 12) * 125000,
+      independentSourceCount: sources,
+      confidence: buildConfidence(sources),
+      earningsGenerated: (i % 4) * 20,
+      submittedAt,
+    };
+  });
+}
 
 export const MOCK_REPORTS: ReportRecord[] = [
   {
@@ -273,6 +534,7 @@ export const MOCK_REPORTS: ReportRecord[] = [
     earningsGenerated: 40,
     submittedAt: "2026-04-01T08:30:00Z",
   },
+  ...buildExtraMockReports(32),
 ];
 
 export const MOCK_WALLET: WalletState = {
@@ -502,6 +764,26 @@ export const settingsStore: { data: InstitutionSettings } = {
       current: false,
     },
   ],
+  developer: {
+    apiKey: {
+      keyPrefix: "rain_live",
+      maskedKey: "rain_live_••••••••••••8f3a",
+      createdAt: "2026-01-15T09:00:00.000Z",
+      lastUsedAt: "2026-07-17T11:22:00.000Z",
+    },
+    webhooks: [
+      {
+        id: "wh_001",
+        url: "https://api.paynest.ng/rain/webhooks",
+        events: ["verification.completed", "report.submitted"],
+        secretPreview: "whsec_••••••••42ab",
+        enabled: true,
+        lastDeliveryAt: "2026-07-17T13:05:00.000Z",
+        lastDeliveryStatus: "success",
+      },
+    ],
+  },
+  settlementBank: null,
   },
 };
 
@@ -514,6 +796,7 @@ export function getDashboardSummary(): DashboardSummary {
     recentVerifications: MOCK_VERIFICATIONS.slice(0, 5),
     recentReports: MOCK_REPORTS.slice(0, 4),
     recentEarnings: MOCK_EARNINGS.filter((e) => e.status !== "paid").slice(0, 4),
+    reportStream: MOCK_REPORT_STREAM.map((e) => ({ ...e })),
   };
 }
 

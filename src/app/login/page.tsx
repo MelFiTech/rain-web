@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { RainMark } from "@/components/ui/logo";
 import { useAuth } from "@/contexts/auth-context";
 import { Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
@@ -157,6 +158,12 @@ export default function LoginPage() {
               {loading ? "Signing in…" : "Log in"}
             </Button>
           </form>
+
+          <Link href="/request-access" className="mt-3 block">
+            <Button type="button" variant="secondary" className="w-full" size="lg">
+              Request access
+            </Button>
+          </Link>
 
           <p className="mt-5 text-xs text-subtle">
             Demo: compliance@paynest.ng / password123

@@ -74,6 +74,10 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   const unread = notifications.filter((n) => !n.read).length;
   const title = getPageTitle(pathname);
+  const hideVerifyUser =
+    pathname === "/reports" || pathname.startsWith("/reports/");
+  const hideHeaderBalance =
+    pathname === "/dashboard" || pathname.startsWith("/dashboard/");
 
   const handleLogout = async () => {
     await logout();
@@ -82,7 +86,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
   return (
     <header className="shrink-0 z-30 bg-surface border-b border-line no-print">
-      <div className="flex items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 h-16">
+      <div className="flex items-center justify-between gap-4 px-2 sm:px-3 lg:px-4 h-16">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onMenuClick}
@@ -97,22 +101,26 @@ export function Header({ onMenuClick }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          <Link
-            href="/wallet"
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-hover transition-colors"
-          >
-            <Wallet className="h-4 w-4 text-muted" />
-            <span className="text-sm font-medium text-ink tabular-nums">
-              {formatNaira(balance)}
-            </span>
-          </Link>
-          <button
-            onClick={() => setVerifyOpen(true)}
-            className="inline-flex items-center gap-2 h-9 px-3 sm:px-4 mx-1 rounded-full text-sm font-medium text-white bg-gradient-to-b from-[#f2679e] to-[#d63f7c] ring-1 ring-[#c93a72]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_2px_rgba(122,20,58,0.35),0_2px_10px_-2px_rgba(234,76,137,0.5)] hover:from-[#f47bab] hover:to-[#e04a86] active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <ShieldCheck className="h-4 w-4" />
-            <span className="hidden sm:inline">Verify User</span>
-          </button>
+          {!hideHeaderBalance && (
+            <Link
+              href="/wallet"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-hover transition-colors"
+            >
+              <Wallet className="h-4 w-4 text-muted" />
+              <span className="text-sm font-medium text-ink tabular-nums">
+                {formatNaira(balance)}
+              </span>
+            </Link>
+          )}
+          {!hideVerifyUser && (
+            <button
+              onClick={() => setVerifyOpen(true)}
+              className="inline-flex items-center gap-2 h-9 px-3 sm:px-4 mx-1 rounded-full text-sm font-medium text-white bg-gradient-to-b from-[#f2679e] to-[#d63f7c] ring-1 ring-[#c93a72]/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_2px_rgba(122,20,58,0.35),0_2px_10px_-2px_rgba(234,76,137,0.5)] hover:from-[#f47bab] hover:to-[#e04a86] active:scale-[0.98] transition-all cursor-pointer"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span className="hidden sm:inline">Verify User</span>
+            </button>
+          )}
 
           <div className="relative" ref={notifRef}>
             <button
@@ -211,14 +219,16 @@ export function Header({ onMenuClick }: HeaderProps) {
                     <Settings className="h-4 w-4 text-muted" />
                     Settings
                   </Link>
-                  <Link
-                    href="/wallet"
-                    onClick={() => setProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-hover transition-colors sm:hidden"
-                  >
-                    <Wallet className="h-4 w-4 text-muted" />
-                    Wallet · {formatNaira(balance)}
-                  </Link>
+                  {!hideHeaderBalance && (
+                    <Link
+                      href="/wallet"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-hover transition-colors sm:hidden"
+                    >
+                      <Wallet className="h-4 w-4 text-muted" />
+                      Wallet · {formatNaira(balance)}
+                    </Link>
+                  )}
                 </div>
                 <div className="h-px bg-line" />
                 <div className="p-1.5">

@@ -93,32 +93,32 @@ export function Pagination({
   total,
   onPageChange,
 }: PaginationProps) {
-  if (totalPages <= 1) return null;
-
   return (
-    <div className="flex items-center justify-between gap-4 pt-4 mt-2">
+    <div className="flex items-center justify-between gap-4">
       <p className="text-xs text-muted">
         {total} result{total !== 1 ? "s" : ""}
       </p>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onPageChange(page - 1)}
-          disabled={page <= 1}
-          className="px-3 py-1.5 text-sm rounded-lg hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-        >
-          Previous
-        </button>
-        <span className="text-sm text-muted tabular-nums">
-          {page} / {totalPages}
-        </span>
-        <button
-          onClick={() => onPageChange(page + 1)}
-          disabled={page >= totalPages}
-          className="px-3 py-1.5 text-sm rounded-lg hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-        >
-          Next
-        </button>
-      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onPageChange(page - 1)}
+            disabled={page <= 1}
+            className="px-3 py-1.5 text-sm rounded-lg hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-muted tabular-nums">
+            {page} / {totalPages}
+          </span>
+          <button
+            onClick={() => onPageChange(page + 1)}
+            disabled={page >= totalPages}
+            className="px-3 py-1.5 text-sm rounded-lg hover:bg-hover disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }
