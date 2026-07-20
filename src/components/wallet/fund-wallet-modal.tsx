@@ -11,6 +11,7 @@ import {
   createMonnifyFundSession,
   getWalletFundingQuote,
 } from "@/services/wallet";
+import { subscribeWalletFundSessionPaid } from "@/lib/platform-realtime";
 import type { MonnifyFundSession } from "@/types";
 import {
   AlertTriangle,
@@ -19,8 +20,6 @@ import {
   Copy,
 } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-
-const FUNDING_STATUS_POLL_MS = 2 * 60 * 1000;
 
 async function copyText(text: string) {
   try {
@@ -206,6 +205,7 @@ export function FundWalletModal({
   const [creditedBalance, setCreditedBalance] = useState<number | null>(null);
   const [transferConfirmError, setTransferConfirmError] = useState("");
   const checkingRef = useRef(false);
+  const fundingSettledRef = useRef(false);
 
   const reset = useCallback(() => {
     setStep("amount");
@@ -214,6 +214,7 @@ export function FundWalletModal({
     setSession(null);
     setCreditedBalance(null);
     setTransferConfirmError("");
+    fundingSettledRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -256,53 +257,66 @@ export function FundWalletModal({
     }
   };
 
+  const completeFunding = useCallback(
+    async (balance: number) => {
+      if (fundingSettledRef.current) return;
+      fundingSettledRef.current = true;
+      setCreditedBalance(balance);
+      await onFunded();
+      setStep("success");
+      toast.success("Wallet funded successfully.");
+    },
+    [onFunded, toast]
+  );
+
+  const sessionId = session?.id;
+
   const checkPayment = useCallback(
-    async (options?: { fromPoll?: boolean }) => {
-      if (!session || checkingRef.current) return;
+    async (options?: { fromSocket?: boolean }) => {
+      if (!sessionId || checkingRef.current || fundingSettledRef.current) {
+        return;
+      }
       checkingRef.current = true;
       setLoading(true);
-      if (!options?.fromPoll) {
+      if (!options?.fromSocket) {
         setTransferConfirmError("");
       }
       try {
-        const res = await confirmMonnifyFundSession(session.id);
+        const res = await confirmMonnifyFundSession(sessionId);
         if (res.success) {
-          setCreditedBalance(res.balance);
-          await onFunded();
-          setStep("success");
-          toast.success("Wallet funded successfully.");
+          await completeFunding(res.balance);
         } else if (res.status === "expired") {
           toast.error(res.error);
           setStep("amount");
           setSession(null);
-        } else {
+        } else if (!options?.fromSocket) {
           setTransferConfirmError(
             res.error ||
               "Payment not confirmed yet. Complete the transfer, then check again in a moment."
           );
         }
       } catch {
-        setTransferConfirmError(
-          "Could not confirm payment. Try again in a moment."
-        );
+        if (!options?.fromSocket) {
+          setTransferConfirmError(
+            "Could not confirm payment. Try again in a moment."
+          );
+        }
       } finally {
         checkingRef.current = false;
         setLoading(false);
       }
     },
-    [session, onFunded, toast]
+    [sessionId, completeFunding, toast]
   );
 
   useEffect(() => {
-    if (!open || step !== "transfer" || !session) return;
+    if (!open || step !== "transfer" || !sessionId) return;
 
-    const tick = () => {
-      void checkPayment({ fromPoll: true });
-    };
-
-    const intervalId = window.setInterval(tick, FUNDING_STATUS_POLL_MS);
-    return () => window.clearInterval(intervalId);
-  }, [open, step, session?.id, checkPayment]);
+    return subscribeWalletFundSessionPaid((payload) => {
+      if (payload.sessionId !== sessionId) return;
+      void checkPayment({ fromSocket: true });
+    });
+  }, [open, step, sessionId, checkPayment]);
 
   const title =
     step === "success"

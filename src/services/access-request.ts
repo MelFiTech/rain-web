@@ -50,11 +50,16 @@ export async function submitAccessRequest(
     if (e instanceof ApiRequestError) {
       return { success: false, error: e.message };
     }
-    return {
-      success: false,
-      error:
-        e instanceof Error ? e.message : "Could not submit your request.",
-    };
+    const message =
+      e instanceof Error ? e.message : "Could not submit your request.";
+    if (message === "Failed to fetch" || message.includes("NetworkError")) {
+      return {
+        success: false,
+        error:
+          "Could not reach the Rain API. Check that NEXT_PUBLIC_API_URL is correct and the API allows your site (CORS / WEB_APP_URL).",
+      };
+    }
+    return { success: false, error: message };
   }
 }
 

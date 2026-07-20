@@ -14,7 +14,6 @@ import {
   SettingsSkeleton,
   ApiKeySettingsCardSkeleton,
   NotificationsSettingsCardSkeleton,
-  PasswordChangeCardSkeleton,
   ProfileSettingsCardSkeleton,
   SessionsListCardSkeleton,
   SettlementSettingsCardSkeleton,
@@ -149,7 +148,7 @@ function SettingsPageContent() {
   const canManageIntegration =
     !!user && canManageIntegrationSettings(user.role);
 
-  const load = useCallback(async (options?: { silent?: boolean }) => {
+  const load = useCallback(async () => {
     try {
       const data = await fetchSettings();
       setSettings(data);
@@ -203,7 +202,7 @@ function SettingsPageContent() {
         contactName,
       });
       toast.success("Profile updated.");
-      await load({ silent: true });
+      await load();
     } finally {
       setProfileSaving(false);
     }
@@ -244,7 +243,7 @@ function SettingsPageContent() {
 
   const handleLogoutSession = async (id: string) => {
     await logoutSession(id);
-    await load({ silent: true });
+    await load();
   };
 
   const handleLogoutAll = async () => {
@@ -299,7 +298,7 @@ function SettingsPageContent() {
           {settingsReady ? (
             <SettlementBankSettingsPanel
               account={settings!.settlementBank}
-              onUpdated={() => load({ silent: true })}
+              onUpdated={() => load()}
             />
           ) : (
             <SettlementSettingsCardSkeleton />
@@ -329,7 +328,7 @@ function SettingsPageContent() {
               <ApiKeySettingsPanel
                 apiKey={settings!.developer.apiKey}
                 canManage={canManageIntegration}
-                onUpdated={() => load({ silent: true })}
+                onUpdated={() => load()}
               />
             ) : (
               <ApiKeySettingsCardSkeleton />
@@ -344,7 +343,7 @@ function SettingsPageContent() {
               <WebhooksSettingsPanel
                 webhooks={settings!.developer.webhooks}
                 canManage={canManageIntegration}
-                onUpdated={() => load({ silent: true })}
+                onUpdated={() => load()}
               />
             ) : (
               <WebhooksSettingsCardSkeleton />

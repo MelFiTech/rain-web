@@ -1,5 +1,6 @@
 import { apiGet, apiPost, isApiConfigured } from "@/lib/api-client";
 import type {
+  IdentifierType,
   PaginatedResult,
   VerificationFilters,
   VerificationRecord,
@@ -7,21 +8,66 @@ import type {
   VerifyUserResponse,
 } from "@/types";
 
+function normalizeVerifyIdentifier(
+  identifierType: IdentifierType,
+  identifier: string
+): string {
+  const trimmed = identifier.trim();
+  switch (identifierType) {
+    case "email":
+      return trimmed.toLowerCase();
+    case "phone":
+    case "bvn":
+    case "nin":
+    case "account_number":
+      return trimmed.replace(/\D/g, "");
+    default:
+      return trimmed;
+  }
+}
+
+function validateVerifyRequest(request: VerifyUserRequest): string | null {
+  const id = normalizeVerifyIdentifier(
+    request.identifierType,
+    request.identifier ?? ""
+  );
+  if (!id) return "Identifier is required.";
+
+  switch (request.identifierType) {
+    case "account_number":
+      if (!request.bankCode?.trim()) {
+        return "Please select a bank for account number verification.";
+      }
+      if (id.length !== 10) {
+        return "Enter a valid 10-digit account number.";
+      }
+      break;
+    case "phone":
+      if (id.length < 10 || id.length > 11) {
+        return "Enter a valid Nigerian phone number.";
+      }
+      break;
+    case "bvn":
+    case "nin":
+      if (id.length !== 11) {
+        return `Enter a valid 11-digit ${request.identifierType.toUpperCase()}.`;
+      }
+      break;
+    case "email":
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(id)) {
+        return "Enter a valid email address.";
+      }
+      break;
+  }
+  return null;
+}
+
 export async function verifyUser(
   request: VerifyUserRequest
 ): Promise<VerifyUserResponse> {
-  if (!request.identifier?.trim()) {
-    return { status: "error", message: "Identifier is required." };
-  }
-
-  if (
-    request.identifierType === "account_number" &&
-    !request.bankCode?.trim()
-  ) {
-    return {
-      status: "error",
-      message: "Please select a bank for account number verification.",
-    };
+  const validationError = validateVerifyRequest(request);
+  if (validationError) {
+    return { status: "error", message: validationError };
   }
 
   if (!isApiConfigured()) {
@@ -32,7 +78,14 @@ export async function verifyUser(
     };
   }
 
-  return apiPost<VerifyUserResponse>("/platform/verifications/verify", request);
+  return apiPost<VerifyUserResponse>("/platform/verifications/verify", {
+    identifierType: request.identifierType,
+    identifier: normalizeVerifyIdentifier(
+      request.identifierType,
+      request.identifier
+    ),
+    bankCode: request.bankCode?.trim() || undefined,
+  });
 }
 
 export async function listVerifications(

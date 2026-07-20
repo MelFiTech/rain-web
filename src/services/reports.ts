@@ -44,6 +44,24 @@ export async function submitReport(
     fieldErrors.email = "Enter a valid email address.";
   }
 
+  const bvn = request.bvn?.replace(/\D/g, "") ?? "";
+  const nin = request.nin?.replace(/\D/g, "") ?? "";
+  const account = request.accountNumber?.replace(/\D/g, "") ?? "";
+  const phone = request.phone?.replace(/\D/g, "") ?? "";
+
+  if (bvn && bvn.length !== 11) {
+    fieldErrors.bvn = "BVN must be 11 digits.";
+  }
+  if (nin && nin.length !== 11) {
+    fieldErrors.nin = "NIN must be 11 digits.";
+  }
+  if (account && account.length !== 10) {
+    fieldErrors.accountNumber = "Account number must be 10 digits.";
+  }
+  if (phone && (phone.length < 10 || phone.length > 11)) {
+    fieldErrors.phone = "Enter a valid Nigerian phone number.";
+  }
+
   if (Object.keys(fieldErrors).length > 0) {
     return {
       success: false,
@@ -61,12 +79,23 @@ export async function submitReport(
   }
 
   try {
+    const payload = {
+      ...request,
+      fullName: request.fullName?.trim() || undefined,
+      bank: request.bank?.trim() || undefined,
+      accountNumber: request.accountNumber?.replace(/\D/g, "") || undefined,
+      phone: request.phone?.replace(/\D/g, "") || undefined,
+      email: request.email?.trim().toLowerCase() || undefined,
+      bvn: request.bvn?.replace(/\D/g, "") || undefined,
+      nin: request.nin?.replace(/\D/g, "") || undefined,
+      description: request.description.trim(),
+    };
     const result = await apiPost<{
       success: boolean;
       report?: ReportRecord;
       error?: string;
       fieldErrors?: Record<string, string>;
-    }>("/platform/reports", request);
+    }>("/platform/reports", payload);
     if (!result.success || !result.report) {
       return {
         success: false,
