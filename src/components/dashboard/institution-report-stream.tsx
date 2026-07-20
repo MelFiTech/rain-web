@@ -1,48 +1,35 @@
 "use client";
 
 import { CheckUserSheet } from "@/components/dashboard/check-user-sheet";
+import { dashboardListPanelClassName } from "@/components/dashboard/dashboard-list-panel";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { categoryLabel, formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { createNetworkReportEvent } from "@/services/mock-data";
 import type { NetworkReportEvent } from "@/types";
+import { Radio } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const MAX_VISIBLE = 10;
-const LIVE_INTERVAL_MS = 9_000;
 
 interface InstitutionReportStreamProps {
   initialEvents: NetworkReportEvent[];
-  live?: boolean;
   compact?: boolean;
 }
 
 export function InstitutionReportStream({
   initialEvents,
-  live = true,
   compact = false,
 }: InstitutionReportStreamProps) {
   const [events, setEvents] = useState(initialEvents);
-  const [highlightId, setHighlightId] = useState<string | null>(null);
   const [checkReport, setCheckReport] = useState<NetworkReportEvent | null>(
     null
   );
   const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
-    setEvents(initialEvents);
+    setEvents(initialEvents.slice(0, MAX_VISIBLE));
   }, [initialEvents]);
-
-  useEffect(() => {
-    if (!live) return;
-    const id = window.setInterval(() => {
-      const next = createNetworkReportEvent();
-      setEvents((prev) => [next, ...prev].slice(0, MAX_VISIBLE));
-      setHighlightId(next.id);
-      window.setTimeout(() => setHighlightId(null), 2400);
-    }, LIVE_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [live]);
 
   const openCheck = (event: NetworkReportEvent) => {
     setCheckReport(event);
@@ -53,34 +40,35 @@ export function InstitutionReportStream({
     setSheetOpen(false);
   };
 
-  if (events.length === 0) {
-    return (
-      <p className="px-3 py-8 text-sm text-muted text-center">
-        No network reports yet.
-      </p>
-    );
-  }
+  const isEmpty = events.length === 0;
 
   return (
     <>
       <div
-        className={cn(
-          "space-y-0.5 px-1 sm:px-1.5",
-          compact
-            ? "max-h-[148px] overflow-hidden"
-            : "max-h-[min(380px,52vh)] overflow-y-auto overscroll-contain no-scrollbar"
-        )}
+        className={dashboardListPanelClassName(compact, { centered: isEmpty })}
         aria-live="polite"
         aria-label="Live network report stream"
       >
-        {events.map((event) => (
-          <StreamRow
-            key={event.id}
-            event={event}
-            isNew={event.id === highlightId}
-            onCheckUser={() => openCheck(event)}
+        {isEmpty ? (
+          <EmptyState
+            icon={Radio}
+            title="No network reports yet"
+            description={
+              compact
+                ? "Live reports from member institutions will appear here."
+                : "Reports filed across the Rain network will show up here."
+            }
+            className="py-0"
           />
-        ))}
+        ) : (
+          events.map((event) => (
+            <StreamRow
+              key={event.id}
+              event={event}
+              onCheckUser={() => openCheck(event)}
+            />
+          ))
+        )}
       </div>
 
       <CheckUserSheet
@@ -94,18 +82,15 @@ export function InstitutionReportStream({
 
 function StreamRow({
   event,
-  isNew,
   onCheckUser,
 }: {
   event: NetworkReportEvent;
-  isNew: boolean;
   onCheckUser: () => void;
 }) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-2 px-2 py-2.5 rounded-xl transition-colors hover:bg-hover",
-        isNew && "animate-fade-in bg-hover/70"
+        "flex items-center justify-between gap-2 px-2 py-2.5 rounded-xl transition-colors hover:bg-hover"
       )}
     >
       <div className="min-w-0 flex-1">

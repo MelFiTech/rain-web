@@ -1,4 +1,12 @@
-import { delay } from "@/lib/utils";
+import {
+  apiDelete,
+  apiGet,
+  apiPatch,
+  apiPost,
+  isApiConfigured,
+} from "@/lib/api-client";
+import { defaultInstitutionSettings } from "@/lib/empty-states";
+import { getSession } from "@/lib/session";
 import type {
   Institution,
   InstitutionSettings,
@@ -7,53 +15,46 @@ import type {
   WebhookEndpoint,
   WebhookEventType,
 } from "@/types";
-import { settingsStore } from "./mock-data";
-
-let settlementChangeOtpSession:
-  | { requestId: string; code: string; expiresAt: number }
-  | null = null;
 
 export async function fetchSettings(): Promise<InstitutionSettings> {
-  await delay(500);
-  return {
-    profile: { ...settingsStore.data.profile },
-    notificationPreferences: {
-      ...settingsStore.data.notificationPreferences,
-    },
-    sessions: [...settingsStore.data.sessions],
-    developer: {
-      apiKey: { ...settingsStore.data.developer.apiKey },
-      webhooks: settingsStore.data.developer.webhooks.map((w) => ({ ...w, events: [...w.events] })),
-    },
-    settlementBank: settingsStore.data.settlementBank
-      ? { ...settingsStore.data.settlementBank }
-      : null,
-  };
+  if (!isApiConfigured()) {
+    return defaultInstitutionSettings(getSession()?.user.institution);
+  }
+  return apiGet<InstitutionSettings>("/platform/settings");
 }
 
 export async function updateProfile(
   profile: Partial<Institution>
 ): Promise<{ success: true } | { success: false; error: string }> {
-  await delay(700);
-  settingsStore.data.profile = {
-    ...settingsStore.data.profile,
-    ...profile,
-  };
-  return { success: true };
+  if (!isApiConfigured()) {
+    return { success: false, error: "Rain API is not configured." };
+  }
+  try {
+    await apiPatch("/platform/settings/profile", profile);
+    return { success: true };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Could not save profile.",
+    };
+  }
 }
 
 export async function updateNotificationPreferences(
   prefs: NotificationPreferences
 ): Promise<{ success: true }> {
-  await delay(500);
-  settingsStore.data.notificationPreferences = { ...prefs };
+  if (!isApiConfigured()) {
+    return { success: true };
+  }
+  await apiPatch("/platform/settings/notifications", prefs);
   return { success: true };
 }
 
 export async function updateSettlementBank(
   input: Omit<SettlementBankAccount, "updatedAt">
-): Promise<{ success: true; account: SettlementBankAccount } | { success: false; error: string }> {
-  await delay(600);
+): Promise<
+  { success: true; account: SettlementBankAccount } | { success: false; error: string }
+> {
   const accountName = input.accountName.trim();
   const bankName = input.bankName.trim();
   const accountNumber = input.accountNumber.replace(/\D/g, "");
@@ -65,14 +66,29 @@ export async function updateSettlementBank(
     return { success: false, error: "Enter a valid 10-digit account number." };
   }
 
-  const account: SettlementBankAccount = {
-    accountName,
-    bankName,
-    accountNumber,
-    updatedAt: new Date().toISOString(),
-  };
-  settingsStore.data.settlementBank = account;
-  return { success: true, account: { ...account } };
+  if (!isApiConfigured()) {
+    return { success: false, error: "Rain API is not configured." };
+  }
+
+  try {
+    const account = await apiPutSettlementBank({
+      accountName,
+      bankName,
+      accountNumber,
+    });
+    return { success: true, account };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Could not save bank account.",
+    };
+  }
+}
+
+async function apiPutSettlementBank(
+  input: Omit<SettlementBankAccount, "updatedAt">
+): Promise<SettlementBankAccount> {
+  return apiPost<SettlementBankAccount>("/platform/settings/settlement-bank", input);
 }
 
 function maskEmail(value: string): string {
@@ -85,8 +101,15 @@ function maskEmail(value: string): string {
 export async function resolveSettlementBankAccount(input: {
   bankName: string;
   accountNumber: string;
-}): Promise<{ success: true; accountName: string } | { success: false; error: string }> {
-  await delay(500);
+}): Promise<
+  | {
+      success: true;
+      accountName: string;
+      bankName: string;
+      accountNumber: string;
+    }
+  | { success: false; error: string }
+> {
   const bankName = input.bankName.trim();
   const accountNumber = input.accountNumber.replace(/\D/g, "");
 
@@ -97,11 +120,31 @@ export async function resolveSettlementBankAccount(input: {
     return { success: false, error: "Enter a valid 10-digit account number." };
   }
 
-  const nameSeed = Number(accountNumber.slice(-2));
-  const firstNames = ["Ada", "Ife", "Kemi", "Tobi", "Chidi", "Amaka"];
-  const lastNames = ["Okafor", "Bello", "Adebayo", "Nwosu", "Lawal", "Eze"];
-  const accountName = `${firstNames[nameSeed % firstNames.length]} ${lastNames[(nameSeed + 2) % lastNames.length]}`.toUpperCase();
-  return { success: true, accountName };
+  if (!isApiConfigured()) {
+    return {
+      success: false,
+      error: "Bank lookup is unavailable until the Rain API is connected.",
+    };
+  }
+
+  try {
+    const res = await apiPost<{
+      accountName: string;
+      bankName: string;
+      accountNumber: string;
+    }>("/platform/settings/settlement-bank/resolve", { bankName, accountNumber });
+    return {
+      success: true,
+      accountName: res.accountName,
+      bankName: res.bankName,
+      accountNumber: res.accountNumber,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Could not resolve account name.",
+    };
+  }
 }
 
 export async function initiateSettlementBankChangeOtp(): Promise<{
@@ -109,18 +152,17 @@ export async function initiateSettlementBankChangeOtp(): Promise<{
   requestId: string;
   deliveryHint: string;
 }> {
-  await delay(500);
-  const requestId = `settlement_change_${Date.now()}`;
-  const code = "123456";
-  settlementChangeOtpSession = {
-    requestId,
-    code,
-    expiresAt: Date.now() + 5 * 60 * 1000,
-  };
+  if (!isApiConfigured()) {
+    throw new Error("Rain API is not configured.");
+  }
+  const res = await apiPost<{ requestId: string; deliveryHint?: string }>(
+    "/platform/settings/settlement-bank/change-otp"
+  );
+  const profile = getSession()?.user.institution.email ?? "";
   return {
     success: true,
-    requestId,
-    deliveryHint: maskEmail(settingsStore.data.profile.email),
+    requestId: res.requestId,
+    deliveryHint: res.deliveryHint ?? maskEmail(profile),
   };
 }
 
@@ -130,27 +172,24 @@ export async function confirmSettlementBankChange(input: {
   accountName: string;
   bankName: string;
   accountNumber: string;
-}): Promise<{ success: true; account: SettlementBankAccount } | { success: false; error: string }> {
-  await delay(500);
-  if (
-    !settlementChangeOtpSession ||
-    settlementChangeOtpSession.requestId !== input.requestId
-  ) {
-    return { success: false, error: "OTP session expired. Request a new code." };
+}): Promise<
+  { success: true; account: SettlementBankAccount } | { success: false; error: string }
+> {
+  if (!isApiConfigured()) {
+    return { success: false, error: "Rain API is not configured." };
   }
-  if (Date.now() > settlementChangeOtpSession.expiresAt) {
-    settlementChangeOtpSession = null;
-    return { success: false, error: "OTP has expired. Request a new code." };
+  try {
+    const account = await apiPost<SettlementBankAccount>(
+      "/platform/settings/settlement-bank/confirm",
+      input
+    );
+    return { success: true, account };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Could not confirm bank change.",
+    };
   }
-  if (input.otp.trim() !== settlementChangeOtpSession.code) {
-    return { success: false, error: "Invalid OTP. Please try again." };
-  }
-  settlementChangeOtpSession = null;
-  return updateSettlementBank({
-    accountName: input.accountName,
-    bankName: input.bankName,
-    accountNumber: input.accountNumber,
-  });
 }
 
 export async function changePassword(input: {
@@ -158,14 +197,8 @@ export async function changePassword(input: {
   newPassword: string;
   confirmPassword: string;
 }): Promise<{ success: true } | { success: false; error: string }> {
-  await delay(700);
-
   if (!input.currentPassword || !input.newPassword) {
     return { success: false, error: "All password fields are required." };
-  }
-
-  if (input.currentPassword !== "password123") {
-    return { success: false, error: "Current password is incorrect." };
   }
 
   if (input.newPassword.length < 8) {
@@ -179,51 +212,102 @@ export async function changePassword(input: {
     return { success: false, error: "New passwords do not match." };
   }
 
-  return { success: true };
+  if (!isApiConfigured()) {
+    return { success: false, error: "Rain API is not configured." };
+  }
+
+  try {
+    await apiPost("/platform/settings/password", {
+      currentPassword: input.currentPassword,
+      newPassword: input.newPassword,
+    });
+    return { success: true };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Could not change password.",
+    };
+  }
 }
 
 export async function logoutSession(
   sessionId: string
 ): Promise<{ success: boolean }> {
-  await delay(400);
-  settingsStore.data.sessions = settingsStore.data.sessions.filter(
-    (s) => s.id !== sessionId || s.current
-  );
-  return { success: true };
+  if (!isApiConfigured()) return { success: true };
+  try {
+    await apiPost(`/platform/settings/sessions/${encodeURIComponent(sessionId)}/logout`);
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
 }
 
 export async function logoutAllSessions(): Promise<{ success: boolean }> {
-  await delay(500);
-  settingsStore.data.sessions = settingsStore.data.sessions.filter(
-    (s) => s.current
-  );
-  return { success: true };
-}
-
-function randomKeySuffix(length = 32): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let out = "";
-  for (let i = 0; i < length; i++) {
-    out += chars[Math.floor(Math.random() * chars.length)];
+  if (!isApiConfigured()) return { success: true };
+  try {
+    await apiPost("/platform/settings/sessions/logout-all");
+    return { success: true };
+  } catch {
+    return { success: false };
   }
-  return out;
 }
 
 export async function rotateApiKey(): Promise<{
   fullKey: string;
   apiKey: InstitutionSettings["developer"]["apiKey"];
 }> {
-  await delay(600);
-  const suffix = randomKeySuffix();
-  const fullKey = `rain_live_${suffix}`;
-  const apiKey = {
-    keyPrefix: "rain_live",
-    maskedKey: `rain_live_••••••••••••${suffix.slice(-4)}`,
-    createdAt: new Date().toISOString(),
-    lastUsedAt: settingsStore.data.developer.apiKey.lastUsedAt,
-  };
-  settingsStore.data.developer.apiKey = apiKey;
-  return { fullKey, apiKey: { ...apiKey } };
+  if (!isApiConfigured()) {
+    throw new Error("Rain API is not configured.");
+  }
+  return apiPost("/platform/settings/developer/api-key/rotate");
+}
+
+export async function initiateApiKeyRevealOtp(): Promise<
+  | { success: true; requestId: string; deliveryHint: string }
+  | { success: false; error: string }
+> {
+  if (!isApiConfigured()) {
+    return { success: false, error: "Rain API is not configured." };
+  }
+  try {
+    const res = await apiPost<{ requestId: string; deliveryHint: string }>(
+      "/platform/settings/developer/api-key/reveal-otp",
+    );
+    return {
+      success: true,
+      requestId: res.requestId,
+      deliveryHint: res.deliveryHint,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Could not send verification code.",
+    };
+  }
+}
+
+export async function confirmApiKeyReveal(input: {
+  requestId: string;
+  otp: string;
+}): Promise<
+  | { success: true; fullKey: string }
+  | { success: false; error: string }
+> {
+  if (!isApiConfigured()) {
+    return { success: false, error: "Rain API is not configured." };
+  }
+  try {
+    const res = await apiPost<{ fullKey: string }>(
+      "/platform/settings/developer/api-key/reveal",
+      input,
+    );
+    return { success: true, fullKey: res.fullKey };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Could not reveal API key.",
+    };
+  }
 }
 
 export async function upsertWebhook(input: {
@@ -231,55 +315,36 @@ export async function upsertWebhook(input: {
   url: string;
   events: WebhookEventType[];
 }): Promise<{ webhook: WebhookEndpoint; signingSecret?: string }> {
-  await delay(500);
-  const secretSuffix = randomKeySuffix(8);
-  const signingSecret = `whsec_${randomKeySuffix(24)}`;
-
-  if (input.id) {
-    const idx = settingsStore.data.developer.webhooks.findIndex(
-      (w) => w.id === input.id
-    );
-    if (idx === -1) {
-      throw new Error("Webhook not found");
-    }
-    const existing = settingsStore.data.developer.webhooks[idx];
-    const updated: WebhookEndpoint = {
-      ...existing,
-      url: input.url.trim(),
-      events: [...input.events],
-    };
-    settingsStore.data.developer.webhooks[idx] = updated;
-    return { webhook: { ...updated, events: [...updated.events] } };
+  if (!isApiConfigured()) {
+    throw new Error("Rain API is not configured.");
   }
-
-  const webhook: WebhookEndpoint = {
-    id: `wh_${Date.now()}`,
-    url: input.url.trim(),
-    events: [...input.events],
-    secretPreview: `whsec_••••••••${secretSuffix}`,
-    enabled: true,
-  };
-  settingsStore.data.developer.webhooks.push(webhook);
-  return {
-    webhook: { ...webhook, events: [...webhook.events] },
-    signingSecret,
-  };
+  if (input.id) {
+    const webhook = await apiPatch<WebhookEndpoint>(
+      `/platform/settings/developer/webhooks/${encodeURIComponent(input.id)}`,
+      { url: input.url, events: input.events }
+    );
+    return { webhook };
+  }
+  return apiPost("/platform/settings/developer/webhooks", input);
 }
 
 export async function setWebhookEnabled(
   id: string,
   enabled: boolean
 ): Promise<{ success: true }> {
-  await delay(300);
-  const wh = settingsStore.data.developer.webhooks.find((w) => w.id === id);
-  if (!wh) throw new Error("Webhook not found");
-  wh.enabled = enabled;
+  if (!isApiConfigured()) {
+    throw new Error("Rain API is not configured.");
+  }
+  await apiPatch(`/platform/settings/developer/webhooks/${encodeURIComponent(id)}`, {
+    enabled,
+  });
   return { success: true };
 }
 
 export async function removeWebhook(id: string): Promise<{ success: true }> {
-  await delay(400);
-  settingsStore.data.developer.webhooks =
-    settingsStore.data.developer.webhooks.filter((w) => w.id !== id);
+  if (!isApiConfigured()) {
+    throw new Error("Rain API is not configured.");
+  }
+  await apiDelete(`/platform/settings/developer/webhooks/${encodeURIComponent(id)}`);
   return { success: true };
 }

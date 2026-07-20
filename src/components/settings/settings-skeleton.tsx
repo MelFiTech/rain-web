@@ -103,51 +103,103 @@ function SkeletonField({ hint }: { hint?: boolean }) {
   );
 }
 
+function ProfileSettingsCardSkeleton() {
+  return (
+    <Card>
+      <div className="space-y-4">
+        <div className="flex items-center gap-4 mb-2">
+          <Skeleton className="h-16 w-16 shrink-0 rounded-2xl" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3 w-full max-w-[240px]" />
+            <Skeleton className="h-8 w-24 rounded-lg mt-1" />
+          </div>
+        </div>
+        <SkeletonField />
+        <SkeletonField />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <SkeletonField />
+          <SkeletonField />
+        </div>
+        <SkeletonField />
+        <Skeleton className="h-10 w-28 rounded-xl" />
+      </div>
+    </Card>
+  );
+}
+
 function ProfileTabSkeleton() {
   return (
     <SettingsSectionSkeleton descriptionLines={2}>
-      <Card>
-        <div className="space-y-4">
-          <div className="flex items-center gap-4 mb-2">
-            <Skeleton className="h-16 w-16 shrink-0 rounded-2xl" />
-            <div className="space-y-2 flex-1">
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-3 w-full max-w-[240px]" />
-              <Skeleton className="h-8 w-24 rounded-lg mt-1" />
-            </div>
-          </div>
-          <SkeletonField />
-          <SkeletonField />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <SkeletonField />
-            <SkeletonField />
-          </div>
-          <SkeletonField />
-          <Skeleton className="h-10 w-28 rounded-xl" />
-        </div>
-      </Card>
+      <ProfileSettingsCardSkeleton />
     </SettingsSectionSkeleton>
+  );
+}
+
+function NotificationsSettingsCardSkeleton() {
+  return (
+    <Card>
+      <div className="space-y-0">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between gap-4 px-3 py-3 rounded-xl"
+          >
+            <Skeleton className={cn("h-4", i % 2 === 0 ? "w-44" : "w-52")} />
+            <Skeleton className="h-4 w-4 shrink-0 rounded-[4px]" />
+          </div>
+        ))}
+      </div>
+      <Skeleton className="h-10 w-36 rounded-xl mt-4" />
+    </Card>
   );
 }
 
 function NotificationsTabSkeleton() {
   return (
     <SettingsSectionSkeleton descriptionLines={2}>
-      <Card>
-        <div className="space-y-0">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between gap-4 px-3 py-3 rounded-xl"
-            >
-              <Skeleton className={cn("h-4", i % 2 === 0 ? "w-44" : "w-52")} />
-              <Skeleton className="h-4 w-4 shrink-0 rounded-[4px]" />
-            </div>
-          ))}
-        </div>
-        <Skeleton className="h-10 w-36 rounded-xl mt-4" />
-      </Card>
+      <NotificationsSettingsCardSkeleton />
     </SettingsSectionSkeleton>
+  );
+}
+
+function PasswordChangeCardSkeleton() {
+  return (
+    <Card>
+      <div className="space-y-4">
+        <SkeletonField />
+        <SkeletonField hint />
+        <SkeletonField />
+        <Skeleton className="h-10 w-36 rounded-xl" />
+      </div>
+    </Card>
+  );
+}
+
+function SessionsListCardSkeleton() {
+  return (
+    <Card>
+      <div className="space-y-1">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-3 px-3 py-3 rounded-xl"
+          >
+            <Skeleton className="h-9 w-9 shrink-0 rounded-xl" />
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-36" />
+                {i === 0 && <Skeleton className="h-5 w-14 rounded-full" />}
+              </div>
+              <Skeleton className="h-3 w-full max-w-[280px]" />
+            </div>
+            {i !== 0 && (
+              <Skeleton className="h-8 w-16 shrink-0 rounded-lg" />
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
@@ -155,41 +207,11 @@ function SecurityTabSkeleton() {
   return (
     <>
       <SettingsSectionSkeleton descriptionLines={2}>
-        <Card>
-          <div className="space-y-4">
-            <SkeletonField />
-            <SkeletonField hint />
-            <SkeletonField />
-            <Skeleton className="h-10 w-36 rounded-xl" />
-          </div>
-        </Card>
+        <PasswordChangeCardSkeleton />
       </SettingsSectionSkeleton>
 
       <SettingsSectionSkeleton descriptionLines={2} showAction>
-        <Card>
-          <div className="space-y-1">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 px-3 py-3 rounded-xl"
-              >
-                <Skeleton className="h-9 w-9 shrink-0 rounded-xl" />
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-4 w-36" />
-                    {i === 0 && (
-                      <Skeleton className="h-5 w-14 rounded-full" />
-                    )}
-                  </div>
-                  <Skeleton className="h-3 w-full max-w-[280px]" />
-                </div>
-                {i !== 0 && (
-                  <Skeleton className="h-8 w-16 shrink-0 rounded-lg" />
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
+        <SessionsListCardSkeleton />
       </SettingsSectionSkeleton>
     </>
   );
@@ -242,83 +264,97 @@ function TeamTabSkeleton() {
   );
 }
 
+function ApiKeySettingsCardSkeleton() {
+  return (
+    <Card className="space-y-4">
+      <div className="rounded-xl border border-line px-4 py-3 space-y-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Skeleton className="h-4 w-full max-w-[220px]" />
+          <div className="flex gap-2 shrink-0">
+            <Skeleton className="h-8 w-[4.5rem] rounded-lg" />
+            <Skeleton className="h-8 w-[5.5rem] rounded-lg" />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-4 border-t border-line pt-3">
+          <Skeleton className="h-3 w-36" />
+          <Skeleton className="h-3 w-28" />
+        </div>
+      </div>
+      <Skeleton className="h-3 w-full max-w-[420px]" />
+    </Card>
+  );
+}
+
+function WebhooksSettingsCardSkeleton() {
+  return (
+    <Card padding="none" className="py-4 sm:py-5">
+      <div className="flex items-start justify-between gap-4 px-5 sm:px-6 mb-3">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-3 w-full max-w-[280px]" />
+        </div>
+        <Skeleton className="h-8 w-[7.5rem] shrink-0 rounded-lg" />
+      </div>
+      <div className="space-y-0.5 px-2 sm:px-3">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="px-3 py-3.5 rounded-xl space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-4 w-full max-w-[300px]" />
+                <Skeleton className="h-3 w-40" />
+              </div>
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-6 w-14 rounded-full" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </div>
+            <div className="flex gap-1.5">
+              <Skeleton className="h-5 w-32 rounded-md" />
+              <Skeleton className="h-5 w-28 rounded-md" />
+            </div>
+            <Skeleton className="h-3 w-36" />
+            <div className="flex gap-1">
+              <Skeleton className="h-8 w-12 rounded-lg" />
+              <Skeleton className="h-8 w-20 rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 function IntegrationsTabSkeleton() {
   return (
     <>
-      <SettingsSectionSkeleton descriptionLines={3}>
-        <Card className="space-y-4">
-          <div className="rounded-xl border border-line px-4 py-3 space-y-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <Skeleton className="h-4 w-full max-w-[220px]" />
-              <div className="flex gap-2 shrink-0">
-                <Skeleton className="h-8 w-[4.5rem] rounded-lg" />
-                <Skeleton className="h-8 w-[5.5rem] rounded-lg" />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-4 border-t border-line pt-3">
-              <Skeleton className="h-3 w-36" />
-              <Skeleton className="h-3 w-28" />
-            </div>
-          </div>
-          <Skeleton className="h-3 w-full max-w-[420px]" />
-        </Card>
-      </SettingsSectionSkeleton>
-
       <SettingsSectionSkeleton descriptionLines={2}>
-        <Card padding="none" className="py-4 sm:py-5">
-          <div className="flex items-start justify-between gap-4 px-5 sm:px-6 mb-3">
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-3 w-full max-w-[280px]" />
-            </div>
-            <Skeleton className="h-8 w-[7.5rem] shrink-0 rounded-lg" />
-          </div>
-          <div className="space-y-0.5 px-2 sm:px-3">
-            {Array.from({ length: 2 }).map((_, i) => (
-              <div
-                key={i}
-                className="px-3 py-3.5 rounded-xl space-y-2.5"
-              >
-                <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-full max-w-[300px]" />
-                    <Skeleton className="h-3 w-40" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-6 w-14 rounded-full" />
-                    <Skeleton className="h-4 w-16" />
-                  </div>
-                </div>
-                <div className="flex gap-1.5">
-                  <Skeleton className="h-5 w-32 rounded-md" />
-                  <Skeleton className="h-5 w-28 rounded-md" />
-                </div>
-                <Skeleton className="h-3 w-36" />
-                <div className="flex gap-1">
-                  <Skeleton className="h-8 w-12 rounded-lg" />
-                  <Skeleton className="h-8 w-20 rounded-lg" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <ApiKeySettingsCardSkeleton />
+      </SettingsSectionSkeleton>
+      <SettingsSectionSkeleton descriptionLines={2}>
+        <WebhooksSettingsCardSkeleton />
       </SettingsSectionSkeleton>
     </>
+  );
+}
+
+function SettlementSettingsCardSkeleton() {
+  return (
+    <Card>
+      <div className="space-y-4">
+        <Skeleton className="h-4 w-full max-w-md" />
+        <SkeletonField />
+        <SkeletonField />
+        <SkeletonField />
+        <Skeleton className="h-10 w-44 rounded-xl" />
+      </div>
+    </Card>
   );
 }
 
 function SettlementTabSkeleton() {
   return (
     <SettingsSectionSkeleton descriptionLines={2}>
-      <Card>
-        <div className="space-y-4">
-          <Skeleton className="h-4 w-full max-w-md" />
-          <SkeletonField />
-          <SkeletonField />
-          <SkeletonField />
-          <Skeleton className="h-10 w-44 rounded-xl" />
-        </div>
-      </Card>
+      <SettlementSettingsCardSkeleton />
     </SettingsSectionSkeleton>
   );
 }
@@ -349,3 +385,13 @@ export function SettingsSkeleton({ tab = "profile" }: { tab?: SettingsSkeletonTa
     </div>
   );
 }
+
+export {
+  ApiKeySettingsCardSkeleton,
+  NotificationsSettingsCardSkeleton,
+  PasswordChangeCardSkeleton,
+  ProfileSettingsCardSkeleton,
+  SessionsListCardSkeleton,
+  SettlementSettingsCardSkeleton,
+  WebhooksSettingsCardSkeleton,
+};

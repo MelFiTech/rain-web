@@ -1,29 +1,25 @@
 # Rain — Risk Analysis & Intelligence Network
 
-Frontend-only application for verified fintechs and banks to report suspicious users and check whether other institutions have reported them.
+Frontend for verified fintechs and banks to report suspicious users and check whether other institutions have reported them.
 
 ## Stack
 
 - **Next.js** (App Router)
 - **TypeScript**
 - **Tailwind CSS**
-- Mock service layer (swap later for real API)
+- HTTP service layer via `NEXT_PUBLIC_API_URL`
 
 ## Getting started
 
 ```bash
+cp .env.example .env.local
+# Set NEXT_PUBLIC_API_URL to your Rain backend
+
 npm install
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
-
-## Demo credentials
-
-| Field    | Value                   |
-| -------- | ----------------------- |
-| Email    | `compliance@paynest.ng` |
-| Password | `password123`           |
 
 ## Pages
 
@@ -35,16 +31,27 @@ Open [http://localhost:3000](http://localhost:3000).
 | `/report`   | Report a user (form → review → success)          |
 | `/history`  | Verification history with filters + CSV export   |
 | `/reports`  | My reports with detail modal                     |
-| `/wallet`   | Balance, mock Monnify funding, transactions      |
+| `/wallet`   | Balance, Monnify funding, transactions           |
 | `/earnings` | Available / pending / lifetime rewards           |
 | `/team`     | Invite, change role, deactivate members          |
 | `/settings` | Profile, password, notifications, sessions       |
+| `/docs`     | Developer API documentation (verify & reports)   |
 
-## Mock architecture
+## Developer documentation
 
-Services live under `src/services/`. Pages call these functions only — no hardcoded fetch URLs. Replace implementations with real backend clients when APIs are ready.
+Integration guides for verifying users and submitting reports over the API live at **[`/docs`](/docs)** when running locally. API keys and webhooks are managed under **Settings → API & webhooks** in the app.
+
+## API integration
+
+All data access goes through `src/services/`. The shared client is `src/lib/api-client.ts` (Bearer token from login session).
+
+Without `NEXT_PUBLIC_API_URL`, reads return empty state and writes show a configuration error. Wire your backend to the paths used in each service file (for example `POST /auth/login`, `GET /dashboard`, `POST /verifications/verify`, `GET /wallet`, `POST /wallet/fund/sessions`).
 
 ```
+src/lib/
+  api-client.ts
+  session.ts
+  empty-states.ts
 src/services/
   auth.ts
   dashboard.ts
@@ -54,14 +61,7 @@ src/services/
   earnings.ts
   team.ts
   settings.ts
-  mock-data.ts
 ```
-
-## Verification demo tips
-
-- Identifiers ending in `9` return a **match**
-- Use `fraud@test.ng` for a match
-- Known triggers: `0123456789`, `08031234567`, `12345678901`
 
 ## Scripts
 
@@ -74,4 +74,4 @@ npm run lint   # eslint
 
 ## Scope notes
 
-This repository is **frontend only**. Authentication, payments (Monnify), confidence calculation, and developer APIs are mocked and will be provided by the backend.
+This repository is the **Rain web app**. Authentication, payments (Monnify), confidence scoring, and developer APIs are implemented on the backend this app calls.

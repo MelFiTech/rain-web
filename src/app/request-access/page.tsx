@@ -3,11 +3,16 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RainMark } from "@/components/ui/logo";
+import { useToast } from "@/contexts/toast-context";
+import {
+  isPasswordPolicyCompliant,
+  PASSWORD_POLICY_MESSAGE,
+} from "@/lib/password-policy";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { submitAccessRequest } from "@/services/access-request";
 
-/* Only company-domain emails are accepted — requests from personal
-   mailboxes can't be tied to an institution */
 const FREE_EMAIL_DOMAINS = new Set([
   "gmail.com",
   "googlemail.com",
@@ -33,48 +38,50 @@ function isCompanyEmail(value: string) {
   return !!domain && domain.includes(".") && !FREE_EMAIL_DOMAINS.has(domain);
 }
 
-/* Request access — institutions apply before they can sign in. Mirrors the
-   sign-in screen: inset surface container over the halftone dark stage. */
 export default function RequestAccessPage() {
+  const toast = useToast();
   const [companyName, setCompanyName] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
   const [cac, setCac] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const complete =
-    companyName.trim() &&
-    firstName.trim() &&
-    lastName.trim() &&
-    email.trim() &&
-    cac.trim();
+    companyName.trim() && cac.trim() && email.trim() && password;
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!isCompanyEmail(email)) {
-      setError(
-        "Use your company email address — personal domains like Gmail or Yahoo aren't accepted."
+      toast.error(
+        "Use your company email address. Personal domains like Gmail or Yahoo aren't accepted.",
       );
       return;
     }
-    setError("");
+    if (!isPasswordPolicyCompliant(password)) {
+      toast.error(PASSWORD_POLICY_MESSAGE);
+      return;
+    }
     setLoading(true);
-    // No backend yet — acknowledge the request locally
-    await new Promise((r) => setTimeout(r, 900));
+    const result = await submitAccessRequest({
+      companyName: companyName.trim(),
+      cacNumber: cac.trim(),
+      email: email.trim(),
+      password,
+    });
     setLoading(false);
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
     setSubmitted(true);
   };
 
   return (
     <div className="relative h-screen flex overflow-hidden bg-[#0e0c0d]">
-      {/* Endless halftone dots — oversized past every edge so the pattern
-          clips mid-dot at the viewport and never shows a trailing gap */}
       <div className="absolute -inset-3.5 halftone" aria-hidden />
 
-      {/* Left — request form, inset surface container like the app shell */}
       <div className="relative flex-1 flex p-2 sm:p-2.5">
         <div className="flex-1 flex flex-col min-w-0 bg-surface rounded-2xl border border-line shadow-[0_1px_2px_rgba(20,10,15,0.03),0_12px_32px_-12px_rgba(20,10,15,0.08)] overflow-y-auto px-6 sm:px-12 py-8 sm:py-10 animate-fade-in">
           <div className="w-full max-w-[400px] mx-auto flex items-center gap-2.5">
@@ -104,15 +111,15 @@ export default function RequestAccessPage() {
                   Request received
                 </h1>
                 <p className="mt-3 text-sm text-muted leading-relaxed">
-                  Thanks, {firstName.trim()}. Our team will verify{" "}
-                  {companyName.trim()} and reach out at {email.trim()} with
-                  next steps.
+                  We received your request for {companyName.trim()}. Our team
+                  will verify your institution and email {email.trim()} when
+                  your account is approved. Sign in with the password you chose.
                 </p>
-                <p className="mt-8 text-sm text-muted">
+                <p className="mt-8 text-center text-sm text-muted">
                   Already have access?{" "}
                   <Link
                     href="/login"
-                    className="font-medium text-ink hover:text-primary transition-colors"
+                    className="font-medium text-foreground hover:text-primary transition-colors"
                   >
                     Sign in
                   </Link>
@@ -124,7 +131,7 @@ export default function RequestAccessPage() {
                   Request access
                 </h1>
                 <p className="mt-3 text-sm text-muted leading-relaxed">
-                  Tell us about your institution — we verify every member
+                  Tell us about your institution. We verify every member
                   before they join the network.
                 </p>
 
@@ -136,45 +143,7 @@ export default function RequestAccessPage() {
                     autoComplete="organization"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="e.g. PayNest Microfinance Bank"
-                    required
-                  />
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input
-                      variant="outline"
-                      label="First name"
-                      name="given-name"
-                      autoComplete="given-name"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="First name"
-                      required
-                    />
-                    <Input
-                      variant="outline"
-                      label="Last name"
-                      name="family-name"
-                      autoComplete="family-name"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="Last name"
-                      required
-                    />
-                  </div>
-
-                  <Input
-                    variant="outline"
-                    label="Company email"
-                    type="email"
-                    name="email"
-                    autoComplete="work email"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setError("");
-                    }}
-                    placeholder="you@institution.ng"
+                    placeholder="e.g. Acme Microfinance Bank"
                     required
                   />
 
@@ -188,13 +157,51 @@ export default function RequestAccessPage() {
                     required
                   />
 
-                  {error && (
-                    <div
-                      role="alert"
-                      className="rounded-xl bg-primary-soft px-4 py-3 text-sm text-foreground"
+                  <Input
+                    variant="outline"
+                    label="Company email"
+                    type="email"
+                    name="email"
+                    autoComplete="work email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@institution.ng"
+                    required
+                  />
+
+                  <div className="relative">
+                    <Input
+                      variant="outline"
+                      label="Password"
+                      type={showPassword ? "text" : "password"}
+                      name="new-password"
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Create a strong password"
+                      required
+                      className="pr-11"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-[34px] p-1 text-muted hover:text-foreground cursor-pointer"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
-                      {error}
-                    </div>
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+
+                  {password.length > 0 && (
+                    <p className="text-xs text-muted leading-relaxed">
+                      {PASSWORD_POLICY_MESSAGE}
+                    </p>
                   )}
 
                   <Button
@@ -208,11 +215,15 @@ export default function RequestAccessPage() {
                   </Button>
                 </form>
 
-                <Link href="/login" className="mt-3 block">
-                  <Button type="button" variant="secondary" className="w-full" size="lg">
+                <p className="mt-6 text-center text-sm text-muted">
+                  Already have access?{" "}
+                  <Link
+                    href="/login"
+                    className="font-medium text-foreground hover:text-primary transition-colors"
+                  >
                     Sign in
-                  </Button>
-                </Link>
+                  </Link>
+                </p>
               </>
             )}
           </div>
@@ -231,7 +242,6 @@ export default function RequestAccessPage() {
         </div>
       </div>
 
-      {/* Right — testimonial (dots continue behind; soft shadow hugs the text only) */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden items-center justify-center">
         <figure className="relative max-w-xl px-10 text-center">
           <div

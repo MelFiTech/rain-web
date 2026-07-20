@@ -5,7 +5,7 @@ import { ReportUserSheet } from "@/components/reports/report-user-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { DataTable, Pagination, type Column } from "@/components/ui/data-table";
+import { DataTable, Pagination, dataTableBodyClassName, type Column } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { SkeletonTable } from "@/components/ui/skeleton";
@@ -27,10 +27,24 @@ import type {
   ReportRecord,
 } from "@/types";
 import { REPORT_CATEGORIES } from "@/types";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+
+function reportsFiltersActive(
+  filters: ReportFilters,
+  dateRange: string
+): boolean {
+  return Boolean(
+    filters.search?.trim() ||
+      (filters.category && filters.category !== "all") ||
+      (filters.confidence && filters.confidence !== "all") ||
+      dateRange !== "all" ||
+      filters.dateFrom ||
+      filters.dateTo
+  );
+}
 
 function ReportsContent() {
   const searchParams = useSearchParams();
@@ -94,6 +108,11 @@ function ReportsContent() {
     params.set("compose", "1");
     router.replace(`/reports?${params.toString()}`, { scroll: false });
   };
+
+  const filtersActive = useMemo(
+    () => reportsFiltersActive(filters, dateRange),
+    [filters, dateRange]
+  );
 
   const columns: Column<ReportRecord>[] = [
     {
@@ -258,7 +277,9 @@ function ReportsContent() {
         </div>
 
         <div className="mt-4 flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto no-scrollbar -mx-1 px-1 [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-card">
+          <div
+            className={dataTableBodyClassName(!loading && data.length === 0)}
+          >
             {loading ? (
               <SkeletonTable rows={6} />
             ) : (
@@ -270,7 +291,21 @@ function ReportsContent() {
                   setSelected(r);
                   setDetailOpen(true);
                 }}
-                emptyMessage="No reports match your filters."
+                emptyState={{
+                  icon: Flag,
+                  title: filtersActive
+                    ? "No reports match your filters"
+                    : "No reports yet",
+                  description: filtersActive
+                    ? "Try adjusting search, category, or date range."
+                    : "Report a suspicious user to contribute to the Rain network.",
+                  action: filtersActive ? undefined : (
+                    <Button size="sm" onClick={openCompose}>
+                      <Plus className="h-3.5 w-3.5" />
+                      Report user
+                    </Button>
+                  ),
+                }}
               />
             )}
           </div>

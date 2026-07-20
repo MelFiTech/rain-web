@@ -4,7 +4,7 @@ import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { CuteAvatar } from "@/components/ui/avatar";
 import { RainMark } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
-import { getDashboardSummary, MOCK_USER } from "@/services/mock-data";
+import { EMPTY_DASHBOARD_SUMMARY } from "@/lib/empty-states";
 import { NAV_ITEMS } from "@/components/layout/sidebar";
 import { Bell, Moon, ShieldCheck, Sun } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -20,7 +20,7 @@ const GLASS_HEADER =
 export function LandingDashboardPreview() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.76);
-  const data = useMemo(() => getDashboardSummary(), []);
+  const data = useMemo(() => ({ ...EMPTY_DASHBOARD_SUMMARY }), []);
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -143,7 +143,7 @@ export function LandingDashboardPreview() {
             </div>
           </div>
 
-          <span className="sr-only">{MOCK_USER.institution.name}</span>
+          <span className="sr-only">Rain dashboard preview</span>
         </div>
       </div>
     </div>

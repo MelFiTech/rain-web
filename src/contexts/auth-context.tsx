@@ -6,7 +6,9 @@ import {
   logout as logoutService,
   type LoginRequest,
 } from "@/services/auth";
+import { AUTH_SESSION_EXPIRED_EVENT } from "@/lib/api-client";
 import type { AuthSession, User } from "@/types";
+import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -31,6 +33,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const refresh = useCallback(() => {
     const session = getSession();
@@ -41,6 +44,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    const onSessionExpired = () => {
+      setUser(null);
+      if (!window.location.pathname.startsWith("/login")) {
+        router.replace("/login");
+      }
+    };
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () =>
+      window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, onSessionExpired);
+  }, [router]);
 
   const login = useCallback(async (request: LoginRequest) => {
     const result = await loginService(request);

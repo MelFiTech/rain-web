@@ -12,7 +12,12 @@ interface ModalProps {
   description?: string;
   children: React.ReactNode;
   className?: string;
+  contentClassName?: string;
   size?: "sm" | "md" | "lg";
+  /** When false, backdrop clicks do not call onClose (header X still does). */
+  closeOnBackdropClick?: boolean;
+  /** When false, Escape does not call onClose. */
+  closeOnEscape?: boolean;
 }
 
 export function Modal({
@@ -22,20 +27,29 @@ export function Modal({
   description,
   children,
   className,
+  contentClassName,
   size = "md",
+  closeOnBackdropClick = true,
+  closeOnEscape = true,
 }: ModalProps) {
   useEffect(() => {
     if (!open) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !closeOnEscape) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open, onClose, closeOnEscape]);
 
   if (!open) return null;
 
@@ -49,7 +63,7 @@ export function Modal({
     <div className="fixed inset-0 z-50">
       <div
         className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
-        onClick={onClose}
+        onClick={closeOnBackdropClick ? onClose : undefined}
         aria-hidden
       />
       {/* Floating right drawer — inset from top/right/bottom like the app shell */}
@@ -90,7 +104,14 @@ export function Modal({
             </button>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2">{children}</div>
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6 pt-2",
+            contentClassName
+          )}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

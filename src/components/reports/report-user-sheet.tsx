@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { useToast } from "@/contexts/toast-context";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { categoryLabel, formatDate, formatNaira } from "@/lib/format";
@@ -40,10 +41,10 @@ export function ReportUserSheet({
   onClose,
   onSubmitted,
 }: ReportUserSheetProps) {
+  const toast = useToast();
   const [step, setStep] = useState<Step>("form");
   const [form, setForm] = useState<SubmitReportRequest>({ ...emptyForm });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [error, setError] = useState("");
   const [report, setReport] = useState<ReportRecord | null>(null);
 
   useEffect(() => {
@@ -51,7 +52,6 @@ export function ReportUserSheet({
       setStep("form");
       setForm({ ...emptyForm });
       setFieldErrors({});
-      setError("");
       setReport(null);
     }
   }, [open]);
@@ -91,18 +91,19 @@ export function ReportUserSheet({
       errors.email = "Enter a valid email address.";
     }
     setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error(Object.values(errors)[0]!);
+    }
     return Object.keys(errors).length === 0;
   };
 
   const goReview = (e: FormEvent) => {
     e.preventDefault();
-    setError("");
     if (validateLocal()) setStep("review");
   };
 
   const confirmSubmit = async () => {
     setStep("loading");
-    setError("");
     try {
       const res = await submitReport({
         ...form,
@@ -113,14 +114,15 @@ export function ReportUserSheet({
       if (res.success) {
         setReport(res.report);
         setStep("success");
+        toast.success("Report submitted to the Rain network.");
         await onSubmitted?.(res.report);
       } else {
         setFieldErrors(res.fieldErrors || {});
-        setError(res.error);
+        toast.error(res.error);
         setStep("form");
       }
     } catch {
-      setError("Failed to submit report. Please try again.");
+      toast.error("Failed to submit report. Please try again.");
       setStep("form");
     }
   };
@@ -129,7 +131,6 @@ export function ReportUserSheet({
     setForm({ ...emptyForm });
     setReport(null);
     setFieldErrors({});
-    setError("");
     setStep("form");
   };
 
@@ -357,17 +358,6 @@ export function ReportUserSheet({
               placeholder="Describe the incident briefly (min. 10 characters)"
               error={fieldErrors.description}
             />
-
-            {fieldErrors.identifier && (
-              <div className="rounded-xl bg-hover px-4 py-3 text-sm text-foreground">
-                {fieldErrors.identifier}
-              </div>
-            )}
-            {error && (
-              <div className="rounded-xl bg-hover px-4 py-3 text-sm text-foreground">
-                {error}
-              </div>
-            )}
 
             <Button
               type="submit"

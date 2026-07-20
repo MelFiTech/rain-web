@@ -17,7 +17,7 @@ export type ReportCategory =
   | "suspicious_transaction"
   | "other";
 
-export type TeamRole = "administrator" | "analyst" | "finance";
+export type TeamRole = "administrator" | "developer" | "analyst" | "finance";
 
 export type MemberStatus = "active" | "invited" | "deactivated";
 
@@ -46,6 +46,7 @@ export interface User {
   email: string;
   name: string;
   role: TeamRole;
+  isPlatformAdmin?: boolean;
   institution: Institution;
 }
 
@@ -286,6 +287,23 @@ export interface FundWalletRequest {
   amount: number;
 }
 
+export type MonnifyFundSessionStatus = "pending" | "paid" | "expired";
+
+/** One-time virtual account from Monnify checkout for wallet funding. */
+export interface MonnifyFundSession {
+  id: string;
+  reference: string;
+  /** Total the customer must transfer (credit + fee). */
+  amount: number;
+  creditAmount: number;
+  fee: number;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  expiresAt: string;
+  status: MonnifyFundSessionStatus;
+}
+
 export interface PaginatedResult<T> {
   data: T[];
   total: number;
@@ -315,6 +333,14 @@ export interface ReportFilters extends ListFilters {
 export const VERIFICATION_COST = 50;
 export const REWARD_AMOUNT = 20;
 export const LOW_BALANCE_THRESHOLD = 200;
+
+export const WALLET_FUNDING_FEE = 100;
+
+export interface WalletFundingQuote {
+  creditAmount: number;
+  fee: number;
+  transferAmount: number;
+}
 
 export const REPORT_CATEGORIES: { value: ReportCategory; label: string }[] = [
   { value: "fraud", label: "Fraud" },

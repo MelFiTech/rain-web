@@ -4,22 +4,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ConfirmDialog, Modal } from "@/components/ui/modal";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { TeamMembersListSkeleton } from "@/components/settings/settings-skeleton";
 import { formatRelative, roleLabel } from "@/lib/format";
 import {
-  inviteTeamMember,
   listTeamMembers,
   updateMemberRole,
   updateMemberStatus,
 } from "@/services/team";
 import type { TeamMember, TeamRole } from "@/types";
 import { Plus, UserCog } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const ROLE_OPTIONS = [
   { value: "administrator", label: "Administrator" },
+  { value: "developer", label: "Developer" },
   { value: "analyst", label: "Analyst" },
   { value: "finance", label: "Finance" },
 ];
@@ -28,11 +27,6 @@ export function TeamSettingsPanel() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<TeamRole>("analyst");
-  const [inviteError, setInviteError] = useState("");
-  const [inviting, setInviting] = useState(false);
 
   const [roleMember, setRoleMember] = useState<TeamMember | null>(null);
   const [newRole, setNewRole] = useState<TeamRole>("analyst");
@@ -55,26 +49,6 @@ export function TeamSettingsPanel() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const handleInvite = async (e: FormEvent) => {
-    e.preventDefault();
-    setInviteError("");
-    setInviting(true);
-    try {
-      const res = await inviteTeamMember({ name, email, role });
-      if (res.success) {
-        setInviteOpen(false);
-        setName("");
-        setEmail("");
-        setRole("analyst");
-        await load();
-      } else {
-        setInviteError(res.error);
-      }
-    } finally {
-      setInviting(false);
-    }
-  };
 
   const handleRoleChange = async () => {
     if (!roleMember) return;
@@ -188,43 +162,22 @@ export function TeamSettingsPanel() {
         open={inviteOpen}
         onClose={() => setInviteOpen(false)}
         title="Invite team member"
-        description="They will receive an email to join your institution"
+        description="Team invitations"
         size="sm"
       >
-        <form onSubmit={handleInvite} className="space-y-4">
-          <Input
-            label="Full name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <Input
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Select
-            label="Role"
-            value={role}
-            onChange={(e) => setRole(e.target.value as TeamRole)}
-            options={ROLE_OPTIONS}
-          />
-          {inviteError && (
-            <p className="text-sm text-muted bg-hover rounded-xl px-3 py-2">
-              {inviteError}
-            </p>
-          )}
+        <div className="space-y-4">
+          <p className="text-sm text-muted leading-relaxed">
+            This feature is coming soon. You&apos;ll be able to invite
+            colleagues by email and assign roles from here.
+          </p>
           <Button
-            type="submit"
+            type="button"
             className="w-full"
-            loading={inviting}
-            disabled={!name.trim() || !email.trim()}
+            onClick={() => setInviteOpen(false)}
           >
-            Send invite
+            Got it
           </Button>
-        </form>
+        </div>
       </Modal>
 
       <Modal

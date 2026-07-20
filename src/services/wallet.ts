@@ -1,72 +1,73 @@
-import { delay, generateId, generateReference } from "@/lib/utils";
+import { apiGet, apiPost, isApiConfigured } from "@/lib/api-client";
+import { EMPTY_WALLET_STATE } from "@/lib/empty-states";
 import type {
   FundWalletRequest,
-  TransactionType,
+  MonnifyFundSession,
+  MonnifyFundSessionStatus,
+  WalletFundingQuote,
   WalletState,
-  WalletTransaction,
 } from "@/types";
-import { MOCK_WALLET, walletStore } from "./mock-data";
+import { fetchPlatformPricing } from "@/services/pricing";
 
-export function getWalletBalance(): number {
-  return walletStore.balance;
-}
-
-export function deductWallet(
-  amount: number,
-  type: TransactionType,
-  description: string
-): void {
-  walletStore.balance -= amount;
-  const txn: WalletTransaction = {
-    id: generateId("txn"),
-    type,
-    amount: -Math.abs(amount),
-    balanceAfter: walletStore.balance,
-    description,
-    reference: generateReference("CHG"),
-    createdAt: new Date().toISOString(),
+export async function getWalletFundingQuote(
+  creditAmount: number
+): Promise<WalletFundingQuote> {
+  if (isApiConfigured() && creditAmount > 0) {
+    try {
+      return await apiGet<WalletFundingQuote>(
+        `/platform/wallet/fund/quote?amount=${creditAmount}`
+      );
+    } catch {
+      /* fall through */
+    }
+  }
+  const pricing = await fetchPlatformPricing();
+  const fee = pricing.walletFundingFee;
+  return {
+    creditAmount,
+    fee,
+    transferAmount: creditAmount + fee,
   };
-  MOCK_WALLET.transactions.unshift(txn);
-  MOCK_WALLET.balance = walletStore.balance;
-}
-
-export function creditWallet(
-  amount: number,
-  type: TransactionType,
-  description: string
-): void {
-  walletStore.balance += amount;
-  const txn: WalletTransaction = {
-    id: generateId("txn"),
-    type,
-    amount: Math.abs(amount),
-    balanceAfter: walletStore.balance,
-    description,
-    reference: generateReference(type === "funding" ? "FND" : "RWD"),
-    createdAt: new Date().toISOString(),
-  };
-  MOCK_WALLET.transactions.unshift(txn);
-  MOCK_WALLET.balance = walletStore.balance;
 }
 
 export async function fetchWallet(): Promise<WalletState> {
-  await delay(500);
-  return {
-    balance: walletStore.balance,
-    lowBalanceThreshold: MOCK_WALLET.lowBalanceThreshold,
-    transactions: [...MOCK_WALLET.transactions],
-  };
+  if (!isApiConfigured()) {
+    return {
+      balance: EMPTY_WALLET_STATE.balance,
+      lowBalanceThreshold: EMPTY_WALLET_STATE.lowBalanceThreshold,
+      transactions: [],
+    };
+  }
+  return apiGet<WalletState>("/platform/wallet");
+}
+
+export async function fetchWalletBalance(): Promise<number> {
+  const wallet = await fetchWallet();
+  return wallet.balance;
 }
 
 export type FundWalletResult =
   | { success: true; balance: number; reference: string }
   | { success: false; error: string };
 
-export async function fundWallet(
-  request: FundWalletRequest
-): Promise<FundWalletResult> {
-  await delay(1500);
+type FundSessionResponse =
+  | { success: true; session: MonnifyFundSession }
+  | { success: false; error: string };
 
+type ConfirmFundResponse =
+  | { success: true; balance: number; reference: string }
+  | {
+      success: false;
+      error: string;
+      status?: MonnifyFundSessionStatus;
+    };
+
+export async function createMonnifyFundSession(
+  request: FundWalletRequest
+): Promise<
+  | { success: true; session: MonnifyFundSession }
+  | { success: false; error: string }
+> {
   if (!request.amount || request.amount < 100) {
     return { success: false, error: "Minimum funding amount is ₦100." };
   }
@@ -75,12 +76,100 @@ export async function fundWallet(
     return { success: false, error: "Maximum funding amount is ₦5,000,000." };
   }
 
-  const reference = generateReference("FND");
-  creditWallet(request.amount, "funding", "Wallet funding via Monnify");
+  if (!isApiConfigured()) {
+    return {
+      success: false,
+      error:
+        "Wallet funding is unavailable until the Rain API is connected (NEXT_PUBLIC_API_URL).",
+    };
+  }
 
-  return {
-    success: true,
-    balance: walletStore.balance,
-    reference,
-  };
+  try {
+    const result = await apiPost<FundSessionResponse>(
+      "/platform/wallet/fund/sessions",
+      { amount: request.amount }
+    );
+    if (!result.success) {
+      return {
+        success: false,
+        error:
+          ("error" in result && result.error) ||
+          "Could not start Monnify checkout. Try again.",
+      };
+    }
+    return { success: true, session: result.session };
+  } catch (e) {
+    return {
+      success: false,
+      error:
+        e instanceof Error
+          ? e.message
+          : "Could not start Monnify checkout. Try again.",
+    };
+  }
+}
+
+export async function getMonnifyFundSession(
+  sessionId: string
+): Promise<MonnifyFundSession | null> {
+  if (!isApiConfigured()) return null;
+  try {
+    return await apiGet<MonnifyFundSession>(
+      `/platform/wallet/fund/sessions/${encodeURIComponent(sessionId)}`
+    );
+  } catch {
+    return null;
+  }
+}
+
+export async function confirmMonnifyFundSession(
+  sessionId: string
+): Promise<
+  | { success: true; balance: number; reference: string }
+  | { success: false; error: string; status?: MonnifyFundSessionStatus }
+> {
+  if (!isApiConfigured()) {
+    return {
+      success: false,
+      error:
+        "Wallet funding is unavailable until the Rain API is connected (NEXT_PUBLIC_API_URL).",
+    };
+  }
+
+  try {
+    const data = await apiPost<ConfirmFundResponse>(
+      `/platform/wallet/fund/sessions/${encodeURIComponent(sessionId)}/confirm`
+    );
+
+    if (!data.success) {
+      return {
+        success: false,
+        error:
+          ("error" in data && data.error) ||
+          "Could not confirm payment. Try again in a moment.",
+        status: "status" in data ? data.status : undefined,
+      };
+    }
+
+    return {
+      success: true,
+      balance: data.balance,
+      reference: data.reference,
+    };
+  } catch (e) {
+    const message =
+      e instanceof Error
+        ? e.message
+        : "Could not confirm payment. Try again in a moment.";
+    return { success: false, error: message };
+  }
+}
+
+/** @deprecated Use createMonnifyFundSession + bank transfer flow */
+export async function fundWallet(
+  request: FundWalletRequest
+): Promise<FundWalletResult> {
+  const created = await createMonnifyFundSession(request);
+  if (!created.success) return created;
+  return confirmMonnifyFundSession(created.session.id);
 }

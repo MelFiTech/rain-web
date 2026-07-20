@@ -1,23 +1,15 @@
-import { buildConfidence } from "@/lib/confidence";
-import { maskIdentifier } from "@/lib/masking";
-import { delay, generateId, generateReference } from "@/lib/utils";
+import { apiGet, apiPost, isApiConfigured } from "@/lib/api-client";
 import type {
   PaginatedResult,
-  ReportCategory,
   VerificationFilters,
   VerificationRecord,
   VerifyUserRequest,
   VerifyUserResponse,
 } from "@/types";
-import { VERIFICATION_COST } from "@/types";
-import { MATCH_TRIGGERS, MOCK_VERIFICATIONS, walletStore } from "./mock-data";
-import { deductWallet } from "./wallet";
 
 export async function verifyUser(
   request: VerifyUserRequest
 ): Promise<VerifyUserResponse> {
-  await delay(1200);
-
   if (!request.identifier?.trim()) {
     return { status: "error", message: "Identifier is required." };
   }
@@ -32,148 +24,74 @@ export async function verifyUser(
     };
   }
 
-  if (walletStore.balance < VERIFICATION_COST) {
+  if (!isApiConfigured()) {
     return {
-      status: "insufficient_balance",
-      balance: walletStore.balance,
-      cost: VERIFICATION_COST,
+      status: "error",
+      message:
+        "Verification is unavailable until the Rain API is connected (NEXT_PUBLIC_API_URL).",
     };
   }
 
-  const normalized = request.identifier.trim().toLowerCase().replace(/\s/g, "");
-  const isMatch =
-    MATCH_TRIGGERS.some((t) => normalized.includes(t.toLowerCase())) ||
-    normalized.endsWith("9") ||
-    normalized.includes("fraud");
-
-  deductWallet(VERIFICATION_COST, "verification_charge", "User verification");
-
-  const masked = maskIdentifier(request.identifierType, request.identifier);
-  const reference = generateReference("VER");
-
-  let record: VerificationRecord;
-
-  if (isMatch) {
-    const sourceCount = normalized.includes("veryhigh")
-      ? 12
-      : normalized.includes("high")
-        ? 7
-        : normalized.endsWith("9")
-          ? 3
-          : 1;
-
-    record = {
-      id: generateId("ver"),
-      reference,
-      identifierType: request.identifierType,
-      maskedIdentifier: masked,
-      result: "match",
-      confidence: buildConfidence(sourceCount),
-      independentSourceCount: sourceCount,
-      totalReports: sourceCount + Math.floor(Math.random() * 3),
-      categories: (["fraud", "scam"] as ReportCategory[]).slice(
-        0,
-        sourceCount > 2 ? 2 : 1
-      ),
-      firstReportedAt: "2025-12-01T10:00:00Z",
-      mostRecentReportAt: new Date().toISOString(),
-      matchingIdentifiers: [masked],
-      amountCharged: VERIFICATION_COST,
-      createdAt: new Date().toISOString(),
-    };
-  } else {
-    record = {
-      id: generateId("ver"),
-      reference,
-      identifierType: request.identifierType,
-      maskedIdentifier: masked,
-      result: "no_match",
-      confidence: null,
-      independentSourceCount: 0,
-      amountCharged: VERIFICATION_COST,
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  MOCK_VERIFICATIONS.unshift(record);
-  return { status: "success", data: record };
+  return apiPost<VerifyUserResponse>("/platform/verifications/verify", request);
 }
 
 export async function listVerifications(
   filters: VerificationFilters = {}
 ): Promise<PaginatedResult<VerificationRecord>> {
-  await delay(600);
+  const empty: PaginatedResult<VerificationRecord> = {
+    data: [],
+    total: 0,
+    page: filters.page ?? 1,
+    pageSize: filters.pageSize ?? 10,
+    totalPages: 1,
+  };
 
-  let data = [...MOCK_VERIFICATIONS];
-  const {
-    search = "",
-    result = "all",
-    confidence = "all",
-    dateFrom,
-    dateTo,
-    page = 1,
-    pageSize = 10,
-  } = filters;
-
-  if (search) {
-    const q = search.toLowerCase();
-    data = data.filter(
-      (v) =>
-        v.reference.toLowerCase().includes(q) ||
-        v.maskedIdentifier.toLowerCase().includes(q)
-    );
+  if (!isApiConfigured()) {
+    return empty;
   }
 
-  if (result !== "all") {
-    data = data.filter((v) => v.result === result);
-  }
-
-  if (confidence !== "all") {
-    data = data.filter((v) => v.confidence?.level === confidence);
-  }
-
-  if (dateFrom) {
-    data = data.filter((v) => v.createdAt >= dateFrom);
-  }
-  if (dateTo) {
-    data = data.filter((v) => v.createdAt <= `${dateTo}T23:59:59Z`);
-  }
-
-  const total = data.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const start = (page - 1) * pageSize;
-  const pageData = data.slice(start, start + pageSize);
-
-  return { data: pageData, total, page, pageSize, totalPages };
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== "" && value !== "all") {
+      params.set(key, String(value));
+    }
+  });
+  const qs = params.toString();
+  return apiGet<PaginatedResult<VerificationRecord>>(
+    `/platform/verifications${qs ? `?${qs}` : ""}`
+  );
 }
 
 export async function getVerification(
   id: string
 ): Promise<VerificationRecord | null> {
-  await delay(400);
-  return (
-    MOCK_VERIFICATIONS.find((v) => v.id === id || v.reference === id) ?? null
-  );
+  if (!isApiConfigured()) return null;
+  try {
+    return await apiGet<VerificationRecord>(
+      `/platform/verifications/${encodeURIComponent(id)}`
+    );
+  } catch {
+    return null;
+  }
 }
 
 export async function exportVerificationsCsv(
   filters: VerificationFilters = {}
 ): Promise<string> {
-  await delay(500);
-  const { data } = await listVerifications({ ...filters, page: 1, pageSize: 1000 });
-  const header =
-    "Reference,Identifier Type,Masked Identifier,Result,Confidence,Sources,Cost,Date";
-  const rows = data.map((v) =>
-    [
-      v.reference,
-      v.identifierType,
-      v.maskedIdentifier,
-      v.result,
-      v.confidence?.label ?? "N/A",
-      v.independentSourceCount,
-      v.amountCharged,
-      v.createdAt,
-    ].join(",")
+  if (!isApiConfigured()) {
+    return "Reference,Identifier Type,Masked Identifier,Result,Confidence,Sources,Cost,Date";
+  }
+
+  const params = new URLSearchParams();
+  Object.entries({ ...filters, page: 1, pageSize: 1000 }).forEach(
+    ([key, value]) => {
+      if (value !== undefined && value !== "" && value !== "all") {
+        params.set(key, String(value));
+      }
+    }
   );
-  return [header, ...rows].join("\n");
+  const res = await apiGet<{ csv: string }>(
+    `/platform/verifications/export?${params.toString()}`
+  );
+  return res.csv;
 }

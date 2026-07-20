@@ -2,8 +2,9 @@
 
 import { ConfidenceBadge } from "@/components/confidence-badge";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { DataTable, Pagination, type Column } from "@/components/ui/data-table";
+import { DataTable, Pagination, dataTableBodyClassName, type Column } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { SkeletonTable } from "@/components/ui/skeleton";
@@ -26,12 +27,28 @@ import type {
   VerificationRecord,
   VerificationResult,
 } from "@/types";
-import { Download, Search } from "lucide-react";
+import { Download, History, Search } from "lucide-react";
+import { useVerifySheet } from "@/contexts/verify-sheet-context";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+
+function verificationFiltersActive(
+  filters: VerificationFilters,
+  dateRange: string
+): boolean {
+  return Boolean(
+    filters.search?.trim() ||
+      (filters.result && filters.result !== "all") ||
+      (filters.confidence && filters.confidence !== "all") ||
+      dateRange !== "all" ||
+      filters.dateFrom ||
+      filters.dateTo
+  );
+}
 
 function HistoryContent() {
   const searchParams = useSearchParams();
+  const { openVerifySheet } = useVerifySheet();
   const [filters, setFilters] = useState<VerificationFilters>({
     search: "",
     result: "all",
@@ -93,6 +110,11 @@ function HistoryContent() {
       setExporting(false);
     }
   };
+
+  const filtersActive = useMemo(
+    () => verificationFiltersActive(filters, dateRange),
+    [filters, dateRange]
+  );
 
   const columns: Column<VerificationRecord>[] = [
     {
@@ -267,7 +289,9 @@ function HistoryContent() {
         </div>
 
         <div className="mt-4 flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto no-scrollbar -mx-1 px-1 [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-card">
+          <div
+            className={dataTableBodyClassName(!loading && data.length === 0)}
+          >
             {loading ? (
               <SkeletonTable rows={6} />
             ) : (
@@ -279,7 +303,20 @@ function HistoryContent() {
                   setSelected(r);
                   setDetailOpen(true);
                 }}
-                emptyMessage="No verifications match your filters."
+                emptyState={{
+                  icon: History,
+                  title: filtersActive
+                    ? "No verifications match your filters"
+                    : "No verification history yet",
+                  description: filtersActive
+                    ? "Try adjusting search, result, or date range."
+                    : "Run a user check to build your institution’s verification log.",
+                  action: filtersActive ? undefined : (
+                    <Button size="sm" onClick={() => openVerifySheet()}>
+                      Verify user
+                    </Button>
+                  ),
+                }}
               />
             )}
           </div>

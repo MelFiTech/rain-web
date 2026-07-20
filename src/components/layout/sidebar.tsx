@@ -8,8 +8,10 @@ import {
   Moon,
   PanelLeft,
   Settings,
+  ShieldCheck,
   Sun,
   Wallet,
+  Landmark,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -30,6 +32,7 @@ interface SidebarProps {
   onClose?: () => void;
   collapsed?: boolean;
   onToggle?: () => void;
+  showAdmin?: boolean;
 }
 
 function ThemeControl({ collapsed }: { collapsed?: boolean }) {
@@ -101,8 +104,26 @@ function ThemeControl({ collapsed }: { collapsed?: boolean }) {
   );
 }
 
-export function Sidebar({ open, onClose, collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ open, onClose, collapsed, onToggle, showAdmin }: SidebarProps) {
   const pathname = usePathname();
+
+  const navItems = [
+    ...NAV_ITEMS,
+    ...(showAdmin
+      ? [
+          {
+            href: "/admin/access-requests",
+            label: "Access requests",
+            icon: ShieldCheck,
+          },
+          {
+            href: "/admin/earnings-withdrawals",
+            label: "Earnings withdrawals",
+            icon: Landmark,
+          },
+        ]
+      : []),
+  ];
 
   const renderContent = (isCollapsed: boolean) => (
     <div className="flex h-full flex-col">
@@ -158,7 +179,7 @@ export function Sidebar({ open, onClose, collapsed, onToggle }: SidebarProps) {
           isCollapsed ? "px-2.5" : "px-3"
         )}
       >
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;

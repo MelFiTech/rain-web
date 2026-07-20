@@ -10,12 +10,22 @@ import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import {
+  parseSettingsSkeletonTab,
   SettingsSkeleton,
-  type SettingsSkeletonTab,
+  ApiKeySettingsCardSkeleton,
+  NotificationsSettingsCardSkeleton,
+  PasswordChangeCardSkeleton,
+  ProfileSettingsCardSkeleton,
+  SessionsListCardSkeleton,
+  SettlementSettingsCardSkeleton,
+  WebhooksSettingsCardSkeleton,
 } from "@/components/settings/settings-skeleton";
 import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/contexts/toast-context";
+import { ApiRequestError } from "@/lib/api-client";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { canManageIntegrationSettings } from "@/lib/integration-roles";
 import {
   changePassword,
   fetchSettings,
@@ -30,6 +40,7 @@ import type {
 } from "@/types";
 import { Building2, LogOut, Monitor } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
 
 type SettingsTab =
@@ -73,7 +84,7 @@ function SettingsSection({
   children,
 }: {
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -97,7 +108,11 @@ function SettingsSection({
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<SettingsSkeleton tab="profile" />}>
+    <Suspense
+      fallback={
+        <SettingsSkeleton tab={parseSettingsSkeletonTab(null)} />
+      }
+    >
       <SettingsPageContent />
     </Suspense>
   );
@@ -108,38 +123,33 @@ function SettingsPageContent() {
   const [tab, setTab] = useState<SettingsTab>(() =>
     parseTab(searchParams.get("tab"))
   );
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const toast = useToast();
   const router = useRouter();
   const [settings, setSettings] = useState<InstitutionSettings | null>(null);
-  const [initialLoading, setInitialLoading] = useState(true);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [contactName, setContactName] = useState("");
-  const [profileMsg, setProfileMsg] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordMsg, setPasswordMsg] = useState("");
-  const [passwordError, setPasswordError] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
 
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
   const [prefsSaving, setPrefsSaving] = useState(false);
-  const [prefsMsg, setPrefsMsg] = useState("");
 
   const [logoutAllOpen, setLogoutAllOpen] = useState(false);
   const [logoutAllLoading, setLogoutAllLoading] = useState(false);
 
+  const canManageIntegration =
+    !!user && canManageIntegrationSettings(user.role);
+
   const load = useCallback(async (options?: { silent?: boolean }) => {
-    const silent = options?.silent ?? false;
-    if (!silent) {
-      setInitialLoading(true);
-    }
     try {
       const data = await fetchSettings();
       setSettings(data);
@@ -149,12 +159,24 @@ function SettingsPageContent() {
       setAddress(data.profile.address || "");
       setContactName(data.profile.contactName || "");
       setPrefs(data.notificationPreferences);
-    } finally {
-      if (!silent) {
-        setInitialLoading(false);
+    } catch (e) {
+      if (!(e instanceof ApiRequestError && e.status === 401)) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not load settings.",
+        );
       }
     }
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    const inst = user?.institution;
+    if (!inst || settings) return;
+    setName((v) => v || inst.name);
+    setEmail((v) => v || inst.email);
+    setPhone((v) => v || inst.phone || "");
+    setAddress((v) => v || inst.address || "");
+    setContactName((v) => v || inst.contactName || "");
+  }, [user?.institution, settings]);
 
   useEffect(() => {
     load();
@@ -171,7 +193,6 @@ function SettingsPageContent() {
 
   const saveProfile = async (e: FormEvent) => {
     e.preventDefault();
-    setProfileMsg("");
     setProfileSaving(true);
     try {
       await updateProfile({
@@ -181,7 +202,7 @@ function SettingsPageContent() {
         address,
         contactName,
       });
-      setProfileMsg("Profile updated.");
+      toast.success("Profile updated.");
       await load({ silent: true });
     } finally {
       setProfileSaving(false);
@@ -190,8 +211,6 @@ function SettingsPageContent() {
 
   const savePassword = async (e: FormEvent) => {
     e.preventDefault();
-    setPasswordMsg("");
-    setPasswordError("");
     setPasswordSaving(true);
     try {
       const res = await changePassword({
@@ -200,12 +219,12 @@ function SettingsPageContent() {
         confirmPassword,
       });
       if (res.success) {
-        setPasswordMsg("Password changed successfully.");
+        toast.success("Password changed successfully.");
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       } else {
-        setPasswordError(res.error);
+        toast.error(res.error);
       }
     } finally {
       setPasswordSaving(false);
@@ -215,10 +234,9 @@ function SettingsPageContent() {
   const savePrefs = async () => {
     if (!prefs) return;
     setPrefsSaving(true);
-    setPrefsMsg("");
     try {
       await updateNotificationPreferences(prefs);
-      setPrefsMsg("Preferences saved.");
+      toast.success("Preferences saved.");
     } finally {
       setPrefsSaving(false);
     }
@@ -241,12 +259,9 @@ function SettingsPageContent() {
     }
   };
 
-  if (tab !== "team" && (initialLoading || !settings || !prefs)) {
-    return <SettingsSkeleton tab={tab as SettingsSkeletonTab} />;
-  }
-
-  const showProfileTabs =
-    tab === "profile" || tab === "notifications" || tab === "security";
+  const settingsReady = settings !== null;
+  const prefsReady = prefs !== null;
+  const profileFormReady = settingsReady || Boolean(user?.institution);
 
   return (
     <div className="space-y-8">
@@ -276,47 +291,74 @@ function SettingsPageContent() {
         </SettingsSection>
       )}
 
-      {tab === "settlement" && settings && (
+      {tab === "settlement" && (
         <SettingsSection
           title="Settlement bank"
           description="Bank account for earnings payouts. Withdrawals to your bank always use this account."
         >
-          <SettlementBankSettingsPanel
-            account={settings.settlementBank}
-            onUpdated={() => load({ silent: true })}
-          />
+          {settingsReady ? (
+            <SettlementBankSettingsPanel
+              account={settings!.settlementBank}
+              onUpdated={() => load({ silent: true })}
+            />
+          ) : (
+            <SettlementSettingsCardSkeleton />
+          )}
         </SettingsSection>
       )}
 
-      {tab === "integrations" && settings && (
+      {tab === "integrations" && (
         <>
           <SettingsSection
             title="API key"
-            description="Authenticate server-to-server requests to the Rain API. Keep keys secret and rotate them if exposed."
+            description={
+              <>
+                Authenticate server-to-server requests to the Rain API. Keep keys
+                secret and rotate them if exposed.{" "}
+                <Link
+                  href="/docs"
+                  className="text-primary hover:underline"
+                >
+                  Read the API docs
+                </Link>
+                .
+              </>
+            }
           >
-            <ApiKeySettingsPanel
-              apiKey={settings.developer.apiKey}
-              onUpdated={() => load({ silent: true })}
-            />
+            {settingsReady ? (
+              <ApiKeySettingsPanel
+                apiKey={settings!.developer.apiKey}
+                canManage={canManageIntegration}
+                onUpdated={() => load({ silent: true })}
+              />
+            ) : (
+              <ApiKeySettingsCardSkeleton />
+            )}
           </SettingsSection>
 
           <SettingsSection
             title="Webhooks"
             description="Rain POSTs signed events to your HTTPS endpoints when activity occurs on your account."
           >
-            <WebhooksSettingsPanel
-              webhooks={settings.developer.webhooks}
-              onUpdated={() => load({ silent: true })}
-            />
+            {settingsReady ? (
+              <WebhooksSettingsPanel
+                webhooks={settings!.developer.webhooks}
+                canManage={canManageIntegration}
+                onUpdated={() => load({ silent: true })}
+              />
+            ) : (
+              <WebhooksSettingsCardSkeleton />
+            )}
           </SettingsSection>
         </>
       )}
 
-      {showProfileTabs && settings && prefs && tab === "profile" && (
+      {tab === "profile" && (
       <SettingsSection
         title="Institution profile"
         description="Details visible to other institutions on the Rain network."
       >
+      {profileFormReady ? (
       <Card>
         <form onSubmit={saveProfile} className="space-y-4">
           <div className="flex items-center gap-4 mb-2">
@@ -363,9 +405,6 @@ function SettingsPageContent() {
             value={address}
             onChange={(e) => setAddress(e.target.value)}
           />
-          {profileMsg && (
-            <p className="text-sm text-muted">{profileMsg}</p>
-          )}
           <Button
             type="submit"
             loading={profileSaving}
@@ -375,10 +414,13 @@ function SettingsPageContent() {
           </Button>
         </form>
       </Card>
+      ) : (
+        <ProfileSettingsCardSkeleton />
+      )}
       </SettingsSection>
       )}
 
-      {showProfileTabs && settings && prefs && tab === "security" && (
+      {tab === "security" && (
       <SettingsSection
         title="Change password"
         description="Use at least 8 characters. You'll stay signed in on this device."
@@ -407,14 +449,6 @@ function SettingsPageContent() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
-          {passwordError && (
-            <p className="text-sm text-muted bg-hover rounded-xl px-3 py-2">
-              {passwordError}
-            </p>
-          )}
-          {passwordMsg && (
-            <p className="text-sm text-muted">{passwordMsg}</p>
-          )}
           <Button
             type="submit"
             loading={passwordSaving}
@@ -427,11 +461,12 @@ function SettingsPageContent() {
       </SettingsSection>
       )}
 
-      {showProfileTabs && settings && prefs && tab === "notifications" && (
+      {tab === "notifications" && (
       <SettingsSection
         title="Notification preferences"
         description="Choose how Rain keeps you and your compliance team informed."
       >
+      {prefsReady ? (
       <Card>
         <div className="space-y-3">
           {(
@@ -459,17 +494,17 @@ function SettingsPageContent() {
             </label>
           ))}
         </div>
-        {prefsMsg && (
-          <p className="mt-3 text-sm text-muted">{prefsMsg}</p>
-        )}
         <Button className="mt-4" onClick={savePrefs} loading={prefsSaving}>
           Save preferences
         </Button>
       </Card>
+      ) : (
+        <NotificationsSettingsCardSkeleton />
+      )}
       </SettingsSection>
       )}
 
-      {showProfileTabs && settings && tab === "security" && (
+      {tab === "security" && (
       <SettingsSection
         title="Login sessions"
         description="Devices currently signed in to your account."
@@ -478,15 +513,17 @@ function SettingsPageContent() {
             variant="secondary"
             size="sm"
             onClick={() => setLogoutAllOpen(true)}
+            disabled={!settingsReady}
           >
             <LogOut className="h-3.5 w-3.5" />
             Log out all
           </Button>
         }
       >
+      {settingsReady ? (
       <Card>
         <div className="space-y-1">
-          {settings.sessions.map((s) => (
+          {settings!.sessions.map((s) => (
             <div
               key={s.id}
               className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-hover/50"
@@ -518,6 +555,9 @@ function SettingsPageContent() {
           ))}
         </div>
       </Card>
+      ) : (
+        <SessionsListCardSkeleton />
+      )}
       </SettingsSection>
       )}
 

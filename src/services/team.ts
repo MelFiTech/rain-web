@@ -1,10 +1,9 @@
-import { delay, generateId } from "@/lib/utils";
+import { apiGet, apiPatch, apiPost, isApiConfigured } from "@/lib/api-client";
 import type { MemberStatus, TeamMember, TeamRole } from "@/types";
-import { teamStore } from "./mock-data";
 
 export async function listTeamMembers(): Promise<TeamMember[]> {
-  await delay(500);
-  return [...teamStore.members];
+  if (!isApiConfigured()) return [];
+  return apiGet<TeamMember[]>("/platform/team/members");
 }
 
 export async function inviteTeamMember(input: {
@@ -15,8 +14,6 @@ export async function inviteTeamMember(input: {
   | { success: true; member: TeamMember }
   | { success: false; error: string }
 > {
-  await delay(800);
-
   if (!input.name.trim() || !input.email.trim()) {
     return { success: false, error: "Name and email are required." };
   }
@@ -25,48 +22,58 @@ export async function inviteTeamMember(input: {
     return { success: false, error: "Enter a valid email address." };
   }
 
-  if (
-    teamStore.members.some(
-      (m) => m.email.toLowerCase() === input.email.toLowerCase()
-    )
-  ) {
+  if (!isApiConfigured()) {
     return {
       success: false,
-      error: "A team member with this email already exists.",
+      error:
+        "Team management is unavailable until the Rain API is connected (NEXT_PUBLIC_API_URL).",
     };
   }
 
-  const member: TeamMember = {
-    id: generateId("tm"),
-    name: input.name.trim(),
-    email: input.email.trim().toLowerCase(),
-    role: input.role,
-    status: "invited",
-    lastActiveAt: new Date().toISOString(),
-  };
-
-  teamStore.members = [member, ...teamStore.members];
-  return { success: true, member };
+  try {
+    const member = await apiPost<TeamMember>("/platform/team/members/invite", input);
+    return { success: true, member };
+  } catch (e) {
+    return {
+      success: false,
+      error:
+        e instanceof Error ? e.message : "Could not send invite. Try again.",
+    };
+  }
 }
 
 export async function updateMemberRole(
   id: string,
   role: TeamRole
 ): Promise<{ success: boolean; error?: string }> {
-  await delay(500);
-  const member = teamStore.members.find((m) => m.id === id);
-  if (!member) return { success: false, error: "Member not found." };
-  member.role = role;
-  return { success: true };
+  if (!isApiConfigured()) {
+    return { success: false, error: "Rain API is not configured." };
+  }
+  try {
+    await apiPatch(`/platform/team/members/${encodeURIComponent(id)}`, { role });
+    return { success: true };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Could not update role.",
+    };
+  }
 }
 
 export async function updateMemberStatus(
   id: string,
   status: MemberStatus
 ): Promise<{ success: boolean; error?: string }> {
-  await delay(500);
-  const member = teamStore.members.find((m) => m.id === id);
-  if (!member) return { success: false, error: "Member not found." };
-  member.status = status;
-  return { success: true };
+  if (!isApiConfigured()) {
+    return { success: false, error: "Rain API is not configured." };
+  }
+  try {
+    await apiPatch(`/platform/team/members/${encodeURIComponent(id)}`, { status });
+    return { success: true };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Could not update member.",
+    };
+  }
 }

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RainMark } from "@/components/ui/logo";
 import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/contexts/toast-context";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,13 +12,13 @@ import { FormEvent, useEffect, useState } from "react";
 
 export default function LoginPage() {
   const { login, user, loading: authLoading } = useAuth();
+  const toast = useToast();
   const router = useRouter();
-  const [email, setEmail] = useState("compliance@paynest.ng");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -25,19 +26,29 @@ export default function LoginPage() {
     }
   }, [user, authLoading, router]);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
+    const form = e.currentTarget;
+    const submittedEmail = String(
+      new FormData(form).get("email") ?? email,
+    ).trim();
+    const submittedPassword = String(
+      new FormData(form).get("password") ?? password,
+    );
     setLoading(true);
     try {
-      const result = await login({ email, password, rememberMe });
+      const result = await login({
+        email: submittedEmail,
+        password: submittedPassword,
+        rememberMe,
+      });
       if (result.success) {
         router.push("/dashboard");
       } else {
-        setError(result.error);
+        toast.error(result.error);
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -72,7 +83,7 @@ export default function LoginPage() {
             Sign in
           </h1>
           <p className="mt-3 text-sm text-muted leading-relaxed">
-            Access your institution dashboard on Rain — the Risk Analysis
+            Access your institution dashboard on Rain, the Risk Analysis
             &amp; Intelligence Network.
           </p>
 
@@ -130,23 +141,14 @@ export default function LoginPage() {
                 type="button"
                 className="text-sm text-muted hover:text-foreground transition-colors cursor-pointer"
                 onClick={() =>
-                  setError(
-                    "Password reset is handled by your institution admin. Contact support if needed."
+                  toast.error(
+                    "Password reset is handled by your institution admin. Contact support if needed.",
                   )
                 }
               >
                 Forgot password?
               </button>
             </div>
-
-            {error && (
-              <div
-                role="alert"
-                className="rounded-xl bg-primary-soft px-4 py-3 text-sm text-foreground"
-              >
-                {error}
-              </div>
-            )}
 
             <Button
               type="submit"
@@ -159,14 +161,14 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <Link href="/request-access" className="mt-3 block">
-            <Button type="button" variant="secondary" className="w-full" size="lg">
+          <p className="mt-6 text-center text-sm text-muted">
+            New institution?{" "}
+            <Link
+              href="/request-access"
+              className="font-medium text-foreground hover:text-primary transition-colors"
+            >
               Request access
-            </Button>
-          </Link>
-
-          <p className="mt-5 text-xs text-subtle">
-            Demo: compliance@paynest.ng / password123
+            </Link>
           </p>
         </div>
 

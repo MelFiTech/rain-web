@@ -1,6 +1,28 @@
 "use client";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import { Inbox, type LucideIcon } from "lucide-react";
+
+export const DATA_TABLE_EMPTY_MIN_HEIGHT =
+  "min-h-[min(360px,45vh)]";
+
+/** Apply to the table body wrapper when `data` is empty so the empty state centers in the card. */
+export function dataTableBodyClassName(isEmpty: boolean): string {
+  return cn(
+    "min-h-0 flex-1 -mx-1 px-1",
+    isEmpty
+      ? "flex flex-col items-center justify-center"
+      : "overflow-x-auto overflow-y-auto no-scrollbar [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-card"
+  );
+}
+
+export interface DataTableEmptyState {
+  icon?: LucideIcon;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+}
 
 export interface Column<T> {
   key: string;
@@ -15,7 +37,10 @@ interface DataTableProps<T> {
   data: T[];
   keyExtractor: (row: T) => string;
   onRowClick?: (row: T) => void;
+  /** @deprecated Prefer `emptyState` */
   emptyMessage?: string;
+  emptyState?: DataTableEmptyState;
+  emptyClassName?: string;
 }
 
 export function DataTable<T>({
@@ -24,10 +49,31 @@ export function DataTable<T>({
   keyExtractor,
   onRowClick,
   emptyMessage = "No records found.",
+  emptyState,
+  emptyClassName,
 }: DataTableProps<T>) {
   if (data.length === 0) {
+    const state = emptyState ?? {
+      icon: Inbox,
+      title: emptyMessage,
+    };
+
     return (
-      <div className="py-12 text-center text-sm text-muted">{emptyMessage}</div>
+      <div
+        className={cn(
+          "flex h-full w-full flex-1 flex-col items-center justify-center",
+          DATA_TABLE_EMPTY_MIN_HEIGHT,
+          emptyClassName
+        )}
+      >
+        <EmptyState
+          icon={state.icon}
+          title={state.title}
+          description={state.description}
+          action={state.action}
+          className="py-0"
+        />
+      </div>
     );
   }
 

@@ -1,28 +1,26 @@
 "use client";
 
 import { EarningsPanel } from "@/components/wallet/earnings-panel";
-import {
-  WalletPageSkeleton,
-} from "@/components/wallet/wallet-page-skeleton";
+import { FundWalletModal } from "@/components/wallet/fund-wallet-modal";
+import { WalletPageSkeleton } from "@/components/wallet/wallet-page-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Modal } from "@/components/ui/modal";
+import { EmptyState } from "@/components/ui/empty-state";
+import { DATA_TABLE_EMPTY_MIN_HEIGHT } from "@/components/ui/data-table";
 import { formatDateTime, formatNaira } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { fetchWallet, fundWallet } from "@/services/wallet";
+import { fetchWallet } from "@/services/wallet";
 import type { WalletState, WalletTransaction } from "@/types";
 import {
   AlertTriangle,
   ArrowDownLeft,
   ArrowUpRight,
-  CheckCircle2,
-  CreditCard,
   Plus,
   RefreshCw,
+  Wallet,
 } from "lucide-react";
-import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type WalletTab = "wallet" | "earnings";
@@ -52,8 +50,6 @@ const TYPE_LABELS: Record<WalletTransaction["type"], string> = {
   adjustment: "Adjustment",
 };
 
-type FundStep = "amount" | "review" | "checkout" | "success";
-
 function WalletPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -63,11 +59,6 @@ function WalletPageContent() {
   const [wallet, setWallet] = useState<WalletState | null>(null);
   const [loading, setLoading] = useState(true);
   const [fundOpen, setFundOpen] = useState(false);
-  const [fundStep, setFundStep] = useState<FundStep>("amount");
-  const [amount, setAmount] = useState("");
-  const [fundError, setFundError] = useState("");
-  const [funding, setFunding] = useState(false);
-  const [fundRef, setFundRef] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,6 +68,11 @@ function WalletPageContent() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const refreshWallet = useCallback(async () => {
+    const data = await fetchWallet();
+    setWallet(data);
   }, []);
 
   useEffect(() => {
@@ -95,52 +91,6 @@ function WalletPageContent() {
     );
   };
 
-  const openFund = () => {
-    setFundOpen(true);
-    setFundStep("amount");
-    setAmount("");
-    setFundError("");
-    setFundRef("");
-  };
-
-  const goReview = (e: FormEvent) => {
-    e.preventDefault();
-    setFundError("");
-    const n = Number(amount);
-    if (!n || n < 100) {
-      setFundError("Minimum funding amount is ₦100.");
-      return;
-    }
-    if (n > 5_000_000) {
-      setFundError("Maximum funding amount is ₦5,000,000.");
-      return;
-    }
-    setFundStep("review");
-  };
-
-  const goCheckout = () => setFundStep("checkout");
-
-  const completePayment = async () => {
-    setFunding(true);
-    setFundError("");
-    try {
-      const res = await fundWallet({ amount: Number(amount) });
-      if (res.success) {
-        setFundRef(res.reference);
-        setFundStep("success");
-        await load();
-      } else {
-        setFundError(res.error);
-        setFundStep("amount");
-      }
-    } catch {
-      setFundError("Payment failed. Please try again.");
-      setFundStep("amount");
-    } finally {
-      setFunding(false);
-    }
-  };
-
   if (tab === "wallet" && (loading || !wallet)) {
     return <WalletPageSkeleton tab="wallet" />;
   }
@@ -149,17 +99,17 @@ function WalletPageContent() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-6">
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
         {WALLET_TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => selectTab(t.id)}
             className={cn(
-              "h-9 px-4 rounded-lg text-sm transition-colors cursor-pointer shrink-0",
+              "h-9 shrink-0 cursor-pointer rounded-lg px-4 text-sm transition-colors",
               tab === t.id
-                ? "bg-card border border-line text-ink font-medium"
-                : "border border-transparent text-muted hover:text-foreground hover:bg-hover/60"
+                ? "border border-line bg-card font-medium text-ink"
+                : "border border-transparent text-muted hover:bg-hover/60 hover:text-foreground"
             )}
           >
             {t.label}
@@ -176,14 +126,18 @@ function WalletPageContent() {
               <Card className="lg:col-span-2">
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
-                    <p className="text-xs font-medium text-muted uppercase tracking-wider">
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted">
                       Available balance
                     </p>
                     <p className="mt-2 text-3xl font-semibold tracking-tight text-ink tabular-nums">
                       {formatNaira(wallet.balance)}
                     </p>
                   </div>
-                  <Button onClick={openFund} size="sm" className="shrink-0">
+                  <Button
+                    onClick={() => setFundOpen(true)}
+                    size="sm"
+                    className="shrink-0"
+                  >
                     <Plus className="h-3.5 w-3.5" />
                     Fund wallet
                   </Button>
@@ -193,192 +147,66 @@ function WalletPageContent() {
                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
                     <p className="text-muted">
                       Low balance warning — your wallet is below{" "}
-                      {formatNaira(wallet.lowBalanceThreshold)}. Fund your wallet to
-                      continue running verifications.
+                      {formatNaira(wallet.lowBalanceThreshold)}. Fund your
+                      wallet to continue running verifications.
                     </p>
                   </div>
                 )}
               </Card>
 
-              <Card className="bg-gradient-to-br from-primary-soft/35 via-card to-black/[0.04] dark:from-primary-soft/25 dark:via-card dark:to-black/30">
-                <p className="text-xs font-medium text-muted uppercase tracking-wider">
+              <Card>
+                <p className="text-xs font-medium uppercase tracking-wider text-muted">
                   Quick tip
                 </p>
-                <p className="mt-3 text-sm text-foreground leading-relaxed">
-                  Each verification costs ₦50. Keep a healthy balance so checks are
-                  never interrupted during compliance reviews.
+                <p className="mt-3 text-sm leading-relaxed text-foreground">
+                  Fund via bank transfer to your Monnify one-time account. Each
+                  verification costs ₦50 once your transfer is confirmed.
                 </p>
               </Card>
             </div>
 
             <Card className="flex min-h-0 flex-1 flex-col">
               <CardHeader title="Transaction history" />
-              <div className="min-h-0 flex-1 space-y-1 overflow-y-auto no-scrollbar">
-                {wallet.transactions.map((txn) => (
-                  <TransactionRow key={txn.id} txn={txn} />
-                ))}
-                {wallet.transactions.length === 0 && (
-                  <p className="py-8 text-center text-sm text-muted">
-                    No transactions yet.
-                  </p>
+              <div
+                className={cn(
+                  "min-h-0 flex-1 overflow-y-auto no-scrollbar",
+                  wallet.transactions.length === 0 &&
+                    cn(
+                      "flex flex-col items-center justify-center",
+                      DATA_TABLE_EMPTY_MIN_HEIGHT
+                    )
+                )}
+              >
+                {wallet.transactions.length === 0 ? (
+                  <EmptyState
+                    icon={Wallet}
+                    title="No transactions yet"
+                    description="Fund your wallet or run verifications to see charges and credits here."
+                    action={
+                      <Button size="sm" onClick={() => setFundOpen(true)}>
+                        <Plus className="h-3.5 w-3.5" />
+                        Fund wallet
+                      </Button>
+                    }
+                    className="py-0"
+                  />
+                ) : (
+                  <div className="space-y-1">
+                    {wallet.transactions.map((txn) => (
+                      <TransactionRow key={txn.id} txn={txn} />
+                    ))}
+                  </div>
                 )}
               </div>
             </Card>
           </div>
 
-          <Modal
+          <FundWalletModal
             open={fundOpen}
-            onClose={() => !funding && setFundOpen(false)}
-            title={
-              fundStep === "success"
-                ? "Payment successful"
-                : fundStep === "checkout"
-                  ? "Complete payment"
-                  : fundStep === "review"
-                    ? "Review funding"
-                    : "Fund wallet"
-            }
-            description={
-              fundStep === "amount"
-                ? "Add funds via Monnify (mock checkout)"
-                : undefined
-            }
-            size="sm"
-          >
-            {fundStep === "amount" && (
-              <form onSubmit={goReview} className="space-y-4">
-                <Input
-                  label="Amount (₦)"
-                  type="number"
-                  min={100}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="5000"
-                  required
-                />
-                <div className="flex flex-wrap gap-2">
-                  {[1000, 5000, 10000, 50000].map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setAmount(String(v))}
-                      className="px-3 py-1.5 text-xs rounded-lg bg-hover hover:bg-active text-foreground cursor-pointer"
-                    >
-                      {formatNaira(v)}
-                    </button>
-                  ))}
-                </div>
-                {fundError && (
-                  <p className="text-sm text-muted bg-hover rounded-xl px-3 py-2">
-                    {fundError}
-                  </p>
-                )}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={!amount || Number(amount) < 100}
-                >
-                  Continue
-                </Button>
-              </form>
-            )}
-
-        {fundStep === "review" && (
-          <div className="space-y-4">
-            <div className="rounded-xl bg-hover p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted">Amount</span>
-                <span className="font-semibold text-ink tabular-nums">
-                  {formatNaira(Number(amount))}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Payment method</span>
-                <span className="text-ink">Monnify (mock)</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">New balance</span>
-                <span className="text-ink tabular-nums">
-                  {formatNaira(wallet.balance + Number(amount))}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                className="flex-1"
-                onClick={() => setFundStep("amount")}
-              >
-                Back
-              </Button>
-              <Button className="flex-1" onClick={goCheckout}>
-                Continue to payment
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {fundStep === "checkout" && (
-          <div className="space-y-4 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-hover">
-              <CreditCard className="h-6 w-6 text-muted" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-ink">
-                Monnify checkout (mock)
-              </p>
-              <p className="mt-1 text-sm text-muted">
-                Paying {formatNaira(Number(amount))} — no real charge will be
-                made.
-              </p>
-            </div>
-            <div className="rounded-xl bg-hover p-4 text-left text-sm space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted">Merchant</span>
-                <span className="text-ink">Rain</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Amount</span>
-                <span className="font-semibold text-ink">
-                  {formatNaira(Number(amount))}
-                </span>
-              </div>
-            </div>
-            <Button
-              className="w-full"
-              loading={funding}
-              onClick={completePayment}
-            >
-              Pay {formatNaira(Number(amount))}
-            </Button>
-            <button
-              type="button"
-              onClick={() => setFundStep("review")}
-              className="text-sm text-muted hover:text-foreground cursor-pointer"
-              disabled={funding}
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-
-        {fundStep === "success" && (
-          <div className="space-y-4 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-hover">
-              <CheckCircle2 className="h-6 w-6 text-ink" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-ink">
-                {formatNaira(Number(amount))} added to your wallet
-              </p>
-              <p className="mt-1 text-xs text-muted font-mono">{fundRef}</p>
-            </div>
-            <Button className="w-full" onClick={() => setFundOpen(false)}>
-              Done
-            </Button>
-          </div>
-        )}
-          </Modal>
+            onClose={() => setFundOpen(false)}
+            currentBalance={wallet.balance}
+            onFunded={refreshWallet}
+          />
         </>
       )}
     </div>
@@ -395,25 +223,25 @@ function TransactionRow({ txn }: { txn: WalletTransaction }) {
         : ArrowUpRight;
 
   return (
-    <div className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-hover/50">
-      <div className="h-9 w-9 rounded-xl bg-hover flex items-center justify-center shrink-0">
+    <div className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-hover/50">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-hover">
         <Icon className="h-4 w-4 text-muted" />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-ink truncate">
+          <p className="truncate text-sm font-medium text-ink">
             {TYPE_LABELS[txn.type]}
           </p>
           <Badge tone="soft" className="hidden sm:inline-flex">
             {txn.reference}
           </Badge>
         </div>
-        <p className="text-xs text-muted mt-0.5 truncate">{txn.description}</p>
-        <p className="text-[11px] text-subtle mt-0.5">
+        <p className="mt-0.5 truncate text-xs text-muted">{txn.description}</p>
+        <p className="mt-0.5 text-[11px] text-subtle">
           {formatDateTime(txn.createdAt)}
         </p>
       </div>
-      <div className="text-right shrink-0">
+      <div className="shrink-0 text-right">
         <p
           className={cn(
             "text-sm font-semibold tabular-nums",
@@ -423,7 +251,7 @@ function TransactionRow({ txn }: { txn: WalletTransaction }) {
           {isCredit ? "+" : ""}
           {formatNaira(txn.amount)}
         </p>
-        <p className="text-[11px] text-subtle tabular-nums mt-0.5">
+        <p className="mt-0.5 text-[11px] tabular-nums text-subtle">
           Bal {formatNaira(txn.balanceAfter)}
         </p>
       </div>

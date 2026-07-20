@@ -6,3 +6,8 @@ export * as walletService from "./wallet";
 export * as earningsService from "./earnings";
 export * as teamService from "./team";
 export * as settingsService from "./settings";
+export * as pricingService from "./pricing";
+export * as accessRequestService from "./access-request";
+export * as adminAccessRequestsService from "./admin-access-requests";
+export * as adminEarningsWithdrawalsService from "./admin-earnings-withdrawals";
+export * as invitesService from "./invites";

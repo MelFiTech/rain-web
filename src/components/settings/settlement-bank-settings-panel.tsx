@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { useToast } from "@/contexts/toast-context";
 import { formatDateTime } from "@/lib/format";
 import { maskAccountNumber } from "@/services/earnings";
 import {
@@ -27,6 +28,7 @@ export function SettlementBankSettingsPanel({
   account,
   onUpdated,
 }: SettlementBankSettingsPanelProps) {
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [accountName, setAccountName] = useState("");
   const [bankName, setBankName] = useState(account?.bankName ?? "");
@@ -40,8 +42,6 @@ export function SettlementBankSettingsPanel({
   const [step, setStep] = useState<"details" | "otp">("details");
   const [resolving, setResolving] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
 
   useEffect(() => {
     setBankName(account?.bankName ?? "");
@@ -59,12 +59,9 @@ export function SettlementBankSettingsPanel({
     setDeliveryHint("");
     setResolved(false);
     setStep("details");
-    setError("");
   };
 
   const resolveAccount = async () => {
-    setError("");
-    setMsg("");
     setResolving(true);
     try {
       const res = await resolveSettlementBankAccount({
@@ -73,11 +70,13 @@ export function SettlementBankSettingsPanel({
       });
       if (res.success) {
         setAccountName(res.accountName);
+        setBankName(res.bankName);
+        setAccountNumber(res.accountNumber);
         setResolved(true);
       } else {
         setResolved(false);
         setAccountName("");
-        setError(res.error);
+        toast.error(res.error);
       }
     } finally {
       setResolving(false);
@@ -85,10 +84,8 @@ export function SettlementBankSettingsPanel({
   };
 
   const submit = async () => {
-    setError("");
-    setMsg("");
     if (!resolved || !accountName) {
-      setError("Resolve account details before saving.");
+      toast.error("Resolve account details before saving.");
       return;
     }
 
@@ -101,12 +98,12 @@ export function SettlementBankSettingsPanel({
           accountNumber,
         });
         if (res.success) {
-          setMsg("Settlement account saved.");
+          toast.success("Settlement account saved.");
           setOpen(false);
           resetForm();
           await onUpdated();
         } else {
-          setError(res.error);
+          toast.error(res.error);
         }
         return;
       }
@@ -117,7 +114,7 @@ export function SettlementBankSettingsPanel({
           setOtpRequestId(otpRes.requestId);
           setDeliveryHint(otpRes.deliveryHint);
           setStep("otp");
-          setMsg("OTP sent to your email for verification.");
+          toast.success("OTP sent to your email for verification.");
         }
         return;
       }
@@ -130,12 +127,12 @@ export function SettlementBankSettingsPanel({
         accountNumber,
       });
       if (confirmed.success) {
-        setMsg("Settlement account updated.");
+        toast.success("Settlement account updated.");
         setOpen(false);
         resetForm();
         await onUpdated();
       } else {
-        setError(confirmed.error);
+        toast.error(confirmed.error);
       }
     } finally {
       setSaving(false);
@@ -175,7 +172,6 @@ export function SettlementBankSettingsPanel({
             </Button>
           </div>
         )}
-        {msg && <p className="text-sm text-muted">{msg}</p>}
       </Card>
 
       <Modal
@@ -228,9 +224,12 @@ export function SettlementBankSettingsPanel({
                 Resolve account
               </Button>
               {resolved && accountName && (
-                <div className="rounded-xl border border-line px-3 py-2.5 text-sm text-ink flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary" />
-                  {accountName}
+                <div className="rounded-xl border border-line px-3 py-2.5 text-sm text-ink space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                    <span className="font-medium">{accountName}</span>
+                  </div>
+                  <p className="text-xs text-muted pl-6">{bankName}</p>
                 </div>
               )}
             </>
@@ -246,10 +245,6 @@ export function SettlementBankSettingsPanel({
             />
           )}
 
-          {error && (
-            <p className="text-sm text-muted bg-hover rounded-xl px-3 py-2">{error}</p>
-          )}
-
           <div className="flex gap-2">
             {step === "otp" && (
               <Button
@@ -258,7 +253,6 @@ export function SettlementBankSettingsPanel({
                 onClick={() => {
                   setStep("details");
                   setOtp("");
-                  setError("");
                 }}
                 disabled={saving}
               >

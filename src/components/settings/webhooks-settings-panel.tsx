@@ -36,11 +36,13 @@ async function copyText(text: string) {
 
 interface WebhooksSettingsPanelProps {
   webhooks: WebhookEndpoint[];
+  canManage: boolean;
   onUpdated: () => Promise<void>;
 }
 
 export function WebhooksSettingsPanel({
   webhooks,
+  canManage,
   onUpdated,
 }: WebhooksSettingsPanelProps) {
   const [webhookOpen, setWebhookOpen] = useState(false);
@@ -142,10 +144,12 @@ export function WebhooksSettingsPanel({
           title="Endpoints"
           description="HTTPS URLs that receive signed POST payloads from Rain"
           action={
-            <Button type="button" size="sm" onClick={openAddWebhook}>
-              <Plus className="h-4 w-4" />
-              Add endpoint
-            </Button>
+            canManage ? (
+              <Button type="button" size="sm" onClick={openAddWebhook}>
+                <Plus className="h-4 w-4" />
+                Add endpoint
+              </Button>
+            ) : undefined
           }
         />
 
@@ -173,15 +177,17 @@ export function WebhooksSettingsPanel({
                     <Badge tone={wh.enabled ? "success" : "soft"}>
                       {wh.enabled ? "Active" : "Paused"}
                     </Badge>
-                    <label className="inline-flex items-center gap-2 text-xs text-muted cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={wh.enabled}
-                        onChange={() => handleToggleEnabled(wh)}
-                        className="checkbox"
-                      />
-                      Enabled
-                    </label>
+                    {canManage && (
+                      <label className="inline-flex items-center gap-2 text-xs text-muted cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={wh.enabled}
+                          onChange={() => handleToggleEnabled(wh)}
+                          className="checkbox"
+                        />
+                        Enabled
+                      </label>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -201,25 +207,27 @@ export function WebhooksSettingsPanel({
                     {wh.lastDeliveryStatus === "failed" && " · Failed"}
                   </p>
                 )}
-                <div className="flex gap-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openEditWebhook(wh)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDeleteWebhook(wh)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Remove
-                  </Button>
-                </div>
+                {canManage && (
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEditWebhook(wh)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteWebhook(wh)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

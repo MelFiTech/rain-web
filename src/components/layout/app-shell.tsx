@@ -1,5 +1,6 @@
 "use client";
 
+import { VerifySheetProvider } from "@/contexts/verify-sheet-context";
 import { useAuth } from "@/contexts/auth-context";
 import { RainMark } from "@/components/ui/logo";
 import { useRouter } from "next/navigation";
@@ -46,12 +47,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="h-screen flex p-1 sm:p-1.5 lg:pl-0 overflow-hidden">
+    <VerifySheetProvider>
+      <div className="h-screen flex p-1 sm:p-1.5 lg:pl-0 overflow-hidden">
       <Sidebar
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
         collapsed={collapsed}
         onToggle={toggleCollapsed}
+        showAdmin={Boolean(user.isPlatformAdmin)}
       />
       <div
         data-shell-main
@@ -62,6 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
-    </div>
+      </div>
+    </VerifySheetProvider>
   );
 }

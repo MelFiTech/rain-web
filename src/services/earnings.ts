@@ -1,44 +1,23 @@
-import { delay, generateReference } from "@/lib/utils";
-import type { EarningsSummary, WithdrawEarningsDestination } from "@/types";
-import { MOCK_EARNINGS, settingsStore } from "./mock-data";
-import { creditWallet } from "./wallet";
+import { apiGet, apiPost, isApiConfigured } from "@/lib/api-client";
+import type {
+  EarningsSummary,
+  SettlementBankAccount,
+  WithdrawEarningsDestination,
+} from "@/types";
 
-function getAvailableTotal(): number {
-  return MOCK_EARNINGS.filter((e) => e.status === "available").reduce(
-    (s, e) => s + e.amount,
-    0
-  );
-}
-
-function consumeAvailableEarnings(amount: number): number {
-  let remaining = amount;
-  let consumed = 0;
-  for (const record of MOCK_EARNINGS) {
-    if (record.status !== "available" || remaining <= 0) continue;
-    record.status = "paid";
-    remaining -= record.amount;
-    consumed += record.amount;
-  }
-  return consumed;
-}
+const EMPTY_EARNINGS: EarningsSummary = {
+  available: 0,
+  pending: 0,
+  lifetime: 0,
+  totalRewardedMatches: 0,
+  records: [],
+};
 
 export async function fetchEarnings(): Promise<EarningsSummary> {
-  await delay(600);
-
-  const available = getAvailableTotal();
-  const pending = MOCK_EARNINGS.filter((e) => e.status === "pending").reduce(
-    (s, e) => s + e.amount,
-    0
-  );
-  const lifetime = MOCK_EARNINGS.reduce((s, e) => s + e.amount, 0);
-
-  return {
-    available,
-    pending,
-    lifetime: lifetime + 280,
-    totalRewardedMatches: MOCK_EARNINGS.length + 14,
-    records: [...MOCK_EARNINGS],
-  };
+  if (!isApiConfigured()) {
+    return { ...EMPTY_EARNINGS, records: [] };
+  }
+  return apiGet<EarningsSummary>("/platform/earnings");
 }
 
 export type WithdrawEarningsResult =
@@ -47,81 +26,74 @@ export type WithdrawEarningsResult =
       reference: string;
       amount: number;
       destination: WithdrawEarningsDestination;
+      payoutStatus?: "completed" | "queued" | "processing" | "pending_approval";
+      processAfterAt?: string;
+      monnifyStatus?: string;
     }
   | {
       success: false;
       error: string;
-      code?: "no_settlement_bank" | "insufficient";
+      code?:
+        | "no_settlement_bank"
+        | "insufficient"
+        | "insufficient_wallet"
+        | "pending_authorization"
+        | "payout_failed";
     };
+
+export type BankWithdrawalStatusResult = {
+  reference: string;
+  payoutStatus: "pending_approval" | "scheduled" | "processing" | "completed" | "failed";
+  monnifyStatus: string;
+  processAfterAt?: string;
+  message?: string;
+};
 
 export async function withdrawEarnings(input: {
   amount: number;
   destination: WithdrawEarningsDestination;
 }): Promise<WithdrawEarningsResult> {
-  await delay(900);
-
-  const available = getAvailableTotal();
-  const amount = Math.floor(input.amount);
-
-  if (!amount || amount < 1) {
-    return { success: false, error: "Enter an amount to withdraw." };
-  }
-  if (amount > available) {
+  if (!isApiConfigured()) {
     return {
       success: false,
-      error: `You only have ${available} available to withdraw.`,
-      code: "insufficient",
+      error:
+        "Earnings withdrawal is unavailable until the Rain API is connected (NEXT_PUBLIC_API_URL).",
     };
   }
 
-  if (input.destination === "bank") {
-    if (!settingsStore.data.settlementBank) {
-      return {
-        success: false,
-        error:
-          "Add a settlement bank account in Settings before withdrawing to your bank.",
-        code: "no_settlement_bank",
-      };
-    }
-  }
-
-  const consumed = consumeAvailableEarnings(amount);
-  if (consumed < amount) {
+  try {
+    return await apiPost<WithdrawEarningsResult>("/platform/earnings/withdraw", input);
+  } catch (e) {
     return {
       success: false,
-      error: "Could not withdraw that amount. Please try again.",
-      code: "insufficient",
+      error:
+        e instanceof Error ? e.message : "Could not process withdrawal. Try again.",
     };
   }
-
-  const reference = generateReference(
-    input.destination === "wallet" ? "EWW" : "EWB"
-  );
-
-  if (input.destination === "wallet") {
-    creditWallet(
-      amount,
-      "reward_credit",
-      `Earnings moved to wallet · ${reference}`
-    );
-  }
-
-  return {
-    success: true,
-    reference,
-    amount,
-    destination: input.destination,
-  };
 }
 
-export async function fetchSettlementBankForWithdraw() {
-  await delay(200);
-  const bank = settingsStore.data.settlementBank;
-  return bank ? { ...bank } : null;
+export async function fetchSettlementBankForWithdraw(): Promise<SettlementBankAccount | null> {
+  if (!isApiConfigured()) return null;
+  try {
+    return await apiGet<SettlementBankAccount | null>(
+      "/platform/settings/settlement-bank"
+    );
+  } catch {
+    return null;
+  }
 }
 
 export function maskAccountNumber(num: string): string {
   const digits = num.replace(/\D/g, "");
   if (digits.length <= 4) return digits;
   return `******${digits.slice(-4)}`;
+}
+
+export async function fetchBankWithdrawalStatus(
+  reference: string,
+): Promise<BankWithdrawalStatusResult> {
+  const encoded = encodeURIComponent(reference);
+  return apiGet<BankWithdrawalStatusResult>(
+    `/platform/earnings/withdrawals/${encoded}/status`,
+  );
 }

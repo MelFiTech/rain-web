@@ -3,8 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import { useToast } from "@/contexts/toast-context";
 import { formatNaira } from "@/lib/format";
 import {
+  fetchBankWithdrawalStatus,
   fetchSettlementBankForWithdraw,
   maskAccountNumber,
   withdrawEarnings,
@@ -29,23 +31,28 @@ export function WithdrawEarningsModal({
   available,
   onComplete,
 }: WithdrawEarningsModalProps) {
+  const toast = useToast();
   const [step, setStep] = useState<Step>("method");
   const [destination, setDestination] =
     useState<WithdrawEarningsDestination>("wallet");
   const [amount, setAmount] = useState("");
   const [settlementBank, setSettlementBank] =
     useState<SettlementBankAccount | null>(null);
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [reference, setReference] = useState("");
+  const [payoutStatus, setPayoutStatus] = useState<
+    "completed" | "queued" | "processing" | "pending_approval"
+  >("completed");
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setStep("method");
     setDestination("wallet");
     setAmount(String(available || ""));
-    setError("");
     setReference("");
+    setPayoutStatus("completed");
+    setStatusMessage(null);
     fetchSettlementBankForWithdraw().then(setSettlementBank);
   }, [open, available]);
 
@@ -55,10 +62,9 @@ export function WithdrawEarningsModal({
   };
 
   const selectMethod = (dest: WithdrawEarningsDestination) => {
-    setError("");
     if (dest === "bank" && !settlementBank) {
-      setError(
-        "Add your settlement bank in Settings before withdrawing to an external account."
+      toast.error(
+        "Add your settlement bank in Settings before withdrawing to an external account.",
       );
       setDestination(dest);
       setStep("method");
@@ -71,14 +77,13 @@ export function WithdrawEarningsModal({
 
   const goConfirm = (e: FormEvent) => {
     e.preventDefault();
-    setError("");
     const n = Number(amount);
     if (!n || n < 1) {
-      setError("Enter a valid amount.");
+      toast.error("Enter a valid amount.");
       return;
     }
     if (n > available) {
-      setError(`Maximum available is ${formatNaira(available)}.`);
+      toast.error(`Maximum available is ${formatNaira(available)}.`);
       return;
     }
     setStep("confirm");
@@ -86,7 +91,6 @@ export function WithdrawEarningsModal({
 
   const submit = async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await withdrawEarnings({
         amount: Number(amount),
@@ -94,10 +98,23 @@ export function WithdrawEarningsModal({
       });
       if (res.success) {
         setReference(res.reference);
+        setPayoutStatus(
+          res.destination === "bank"
+            ? (res.payoutStatus ?? "pending_approval")
+            : "completed",
+        );
+        setStatusMessage(null);
         setStep("success");
         onComplete();
+        if (res.destination === "bank") {
+          toast.success(
+            "Withdrawal submitted. Rain admin will review your request.",
+          );
+        } else {
+          toast.success("Withdrawal submitted.");
+        }
       } else {
-        setError(res.error);
+        toast.error(res.error);
         if (res.code === "no_settlement_bank") {
           setStep("method");
         } else {
@@ -108,6 +125,48 @@ export function WithdrawEarningsModal({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!open || step !== "success" || destination !== "bank") return;
+    if (payoutStatus === "completed" || !reference) return;
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const status = await fetchBankWithdrawalStatus(reference);
+        if (cancelled) return;
+        if (status.payoutStatus === "completed") {
+          setPayoutStatus("completed");
+          setStatusMessage(null);
+          onComplete();
+          toast.success("Bank payout completed.");
+        } else if (status.payoutStatus === "failed") {
+          setPayoutStatus("completed");
+          setStatusMessage(
+            status.message ??
+              "Payout failed. Earnings were returned to your available balance.",
+          );
+          onComplete();
+          toast.error(status.message ?? "Bank payout failed.");
+        } else if (status.payoutStatus === "processing") {
+          setPayoutStatus("processing");
+        } else if (status.payoutStatus === "scheduled") {
+          setPayoutStatus("queued");
+        } else if (status.payoutStatus === "pending_approval") {
+          setPayoutStatus("pending_approval");
+        }
+      } catch {
+        // Keep polling on transient errors.
+      }
+    };
+
+    void poll();
+    const id = window.setInterval(poll, 300_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [open, step, destination, payoutStatus, reference, onComplete, toast]);
 
   return (
     <Modal
@@ -167,19 +226,14 @@ export function WithdrawEarningsModal({
               </span>
             </span>
           </button>
-          {error && (
-            <div className="rounded-xl bg-hover px-4 py-3 text-sm text-foreground space-y-2">
-              <p>{error}</p>
-              {!settlementBank && (
-                <Link
-                  href="/settings?tab=settlement"
-                  className="text-sm font-medium text-ink underline underline-offset-2"
-                  onClick={close}
-                >
-                  Set up settlement bank
-                </Link>
-              )}
-            </div>
+          {!settlementBank && (
+            <Link
+              href="/settings?tab=settlement"
+              className="text-sm font-medium text-ink underline underline-offset-2"
+              onClick={close}
+            >
+              Set up settlement bank
+            </Link>
           )}
         </div>
       )}
@@ -190,7 +244,7 @@ export function WithdrawEarningsModal({
             {destination === "wallet"
               ? "Amount will be added to your Rain wallet immediately."
               : settlementBank
-                ? `Payout to ${settlementBank.accountName} · ${settlementBank.bankName}`
+                ? `Payout to ${settlementBank.accountName} · ${settlementBank.bankName}. Admin approval required; payout within 1–2 hours after approval.`
                 : "Bank payout"}
           </p>
           <Input
@@ -209,11 +263,6 @@ export function WithdrawEarningsModal({
           >
             Withdraw all ({formatNaira(available)})
           </button>
-          {error && (
-            <p className="text-sm text-muted bg-hover rounded-xl px-3 py-2">
-              {error}
-            </p>
-          )}
           <div className="flex gap-2">
             <Button
               type="button"
@@ -250,11 +299,6 @@ export function WithdrawEarningsModal({
               </span>
             </div>
           </div>
-          {error && (
-            <p className="text-sm text-muted bg-hover rounded-xl px-3 py-2">
-              {error}
-            </p>
-          )}
           <div className="flex gap-2">
             <Button
               variant="ghost"
@@ -276,9 +320,24 @@ export function WithdrawEarningsModal({
           <p className="text-sm text-muted">
             {destination === "wallet"
               ? `${formatNaira(Number(amount))} has been added to your wallet.`
-              : `${formatNaira(Number(amount))} is on its way to your settlement account. Payouts typically settle within 1–2 business days.`}
+              : payoutStatus === "completed" && !statusMessage
+                ? `${formatNaira(Number(amount))} was sent to your settlement account.`
+                : statusMessage
+                  ? statusMessage
+                  : payoutStatus === "pending_approval"
+                    ? `${formatNaira(Number(amount))} withdrawal is submitted for Rain admin review. After approval, your settlement account is usually paid within 1–2 hours.`
+                    : payoutStatus === "queued"
+                      ? `${formatNaira(Number(amount))} was approved and is queued for bank transfer (typically within 1–2 hours).`
+                      : payoutStatus === "processing"
+                        ? `${formatNaira(Number(amount))} is being sent to your settlement account.`
+                        : `${formatNaira(Number(amount))} was sent to your settlement account.`}
           </p>
-          <p className="text-xs font-mono text-subtle">{reference}</p>
+          {destination === "bank" && payoutStatus !== "completed" && !statusMessage && (
+            <p className="text-xs text-subtle">
+              Earnings stay reserved as pending until the payout completes or
+              fails. You can close this dialog anytime.
+            </p>
+          )}
           <Button className="w-full" onClick={close}>
             Done
           </Button>

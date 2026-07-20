@@ -1,19 +1,24 @@
-import { delay } from "@/lib/utils";
+import { apiGet, apiPatch, isApiConfigured } from "@/lib/api-client";
+import { EMPTY_DASHBOARD_SUMMARY } from "@/lib/empty-states";
 import type { DashboardSummary, NotificationItem } from "@/types";
-import { getDashboardSummary, MOCK_NOTIFICATIONS } from "./mock-data";
 
 export async function fetchDashboard(): Promise<DashboardSummary> {
-  await delay(700);
-  return getDashboardSummary();
+  if (!isApiConfigured()) {
+    return { ...EMPTY_DASHBOARD_SUMMARY };
+  }
+  return apiGet<DashboardSummary>("/platform/dashboard");
 }
 
 export async function fetchNotifications(): Promise<NotificationItem[]> {
-  await delay(300);
-  return [...MOCK_NOTIFICATIONS];
+  if (!isApiConfigured()) {
+    return [];
+  }
+  return apiGet<NotificationItem[]>("/platform/notifications");
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
-  await delay(200);
-  const item = MOCK_NOTIFICATIONS.find((n) => n.id === id);
-  if (item) item.read = true;
+  if (!isApiConfigured()) return;
+  await apiPatch(`/platform/notifications/${encodeURIComponent(id)}`, {
+    read: true,
+  });
 }

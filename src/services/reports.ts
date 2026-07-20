@@ -1,18 +1,10 @@
-import { buildConfidence } from "@/lib/confidence";
-import {
-  maskAccountNumber,
-  maskBvnOrNin,
-  maskEmail,
-  maskPhone,
-} from "@/lib/masking";
-import { delay, generateId, generateReference } from "@/lib/utils";
+import { ApiRequestError, apiGet, apiPost, isApiConfigured } from "@/lib/api-client";
 import type {
   PaginatedResult,
   ReportFilters,
   ReportRecord,
   SubmitReportRequest,
 } from "@/types";
-import { MOCK_REPORTS } from "./mock-data";
 
 export async function submitReport(
   request: SubmitReportRequest
@@ -20,8 +12,6 @@ export async function submitReport(
   | { success: true; report: ReportRecord }
   | { success: false; error: string; fieldErrors?: Record<string, string> }
 > {
-  await delay(1000);
-
   const fieldErrors: Record<string, string> = {};
 
   const hasIdentifier = Boolean(
@@ -62,91 +52,81 @@ export async function submitReport(
     };
   }
 
-  const report: ReportRecord = {
-    id: generateId("rpt"),
-    reference: generateReference("RPT"),
-    fullName: request.fullName?.trim() || undefined,
-    bank: request.bank?.trim() || undefined,
-    maskedAccountNumber: request.accountNumber
-      ? maskAccountNumber(request.accountNumber)
-      : undefined,
-    maskedPhone: request.phone ? maskPhone(request.phone) : undefined,
-    maskedEmail: request.email ? maskEmail(request.email) : undefined,
-    maskedBvn: request.bvn ? maskBvnOrNin(request.bvn) : undefined,
-    maskedNin: request.nin ? maskBvnOrNin(request.nin) : undefined,
-    category: request.category,
-    description: request.description.trim(),
-    incidentDate: request.incidentDate,
-    amountInvolved: request.amountInvolved,
-    independentSourceCount: 1,
-    confidence: buildConfidence(1),
-    earningsGenerated: 0,
-    submittedAt: new Date().toISOString(),
-  };
+  if (!isApiConfigured()) {
+    return {
+      success: false,
+      error:
+        "Report submission is unavailable until the Rain API is connected (NEXT_PUBLIC_API_URL).",
+    };
+  }
 
-  MOCK_REPORTS.unshift(report);
-  return { success: true, report };
+  try {
+    const result = await apiPost<{
+      success: boolean;
+      report?: ReportRecord;
+      error?: string;
+      fieldErrors?: Record<string, string>;
+    }>("/platform/reports", request);
+    if (!result.success || !result.report) {
+      return {
+        success: false,
+        error: result.error ?? "Could not submit report. Try again.",
+        fieldErrors: result.fieldErrors,
+      };
+    }
+    return { success: true, report: result.report };
+  } catch (e) {
+    if (e instanceof ApiRequestError && e.fieldErrors) {
+      return {
+        success: false,
+        error: e.message,
+        fieldErrors: e.fieldErrors,
+      };
+    }
+    return {
+      success: false,
+      error:
+        e instanceof Error ? e.message : "Could not submit report. Try again.",
+    };
+  }
 }
 
 export async function listReports(
   filters: ReportFilters = {}
 ): Promise<PaginatedResult<ReportRecord>> {
-  await delay(600);
-
-  let data = [...MOCK_REPORTS];
-  const {
-    search = "",
-    category = "all",
-    confidence = "all",
-    dateFrom,
-    dateTo,
-    page = 1,
-    pageSize = 10,
-  } = filters;
-
-  if (search) {
-    const q = search.toLowerCase();
-    data = data.filter(
-      (r) =>
-        r.reference.toLowerCase().includes(q) ||
-        r.fullName?.toLowerCase().includes(q) ||
-        r.maskedAccountNumber?.toLowerCase().includes(q) ||
-        r.maskedPhone?.toLowerCase().includes(q) ||
-        r.maskedEmail?.toLowerCase().includes(q)
-    );
-  }
-
-  if (category !== "all") {
-    data = data.filter((r) => r.category === category);
-  }
-
-  if (confidence !== "all") {
-    data = data.filter((r) => r.confidence.level === confidence);
-  }
-
-  if (dateFrom) {
-    data = data.filter((r) => r.submittedAt >= dateFrom);
-  }
-  if (dateTo) {
-    data = data.filter((r) => r.submittedAt <= `${dateTo}T23:59:59Z`);
-  }
-
-  const total = data.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const start = (page - 1) * pageSize;
-
-  return {
-    data: data.slice(start, start + pageSize),
-    total,
-    page,
-    pageSize,
-    totalPages,
+  const empty: PaginatedResult<ReportRecord> = {
+    data: [],
+    total: 0,
+    page: filters.page ?? 1,
+    pageSize: filters.pageSize ?? 10,
+    totalPages: 1,
   };
+
+  if (!isApiConfigured()) {
+    return empty;
+  }
+
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== "" && value !== "all") {
+      params.set(key, String(value));
+    }
+  });
+  const qs = params.toString();
+  return apiGet<PaginatedResult<ReportRecord>>(
+    `/platform/reports${qs ? `?${qs}` : ""}`
+  );
 }
 
 export async function getReport(id: string): Promise<ReportRecord | null> {
-  await delay(400);
-  return MOCK_REPORTS.find((r) => r.id === id || r.reference === id) ?? null;
+  if (!isApiConfigured()) return null;
+  try {
+    return await apiGet<ReportRecord>(
+      `/platform/reports/${encodeURIComponent(id)}`
+    );
+  } catch {
+    return null;
+  }
 }
 
 export function getPrimaryMaskedIdentifier(report: ReportRecord): string {

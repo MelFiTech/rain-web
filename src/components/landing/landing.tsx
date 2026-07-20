@@ -575,6 +575,7 @@ const FEATURES: {
 const NAV_LINKS = [
   { label: "Product", href: "#product" },
   { label: "Network", href: "#network" },
+  { label: "Docs", href: "/docs" },
   { label: "Contact", href: "#access" },
 ];
 
@@ -636,7 +637,7 @@ export function Landing() {
           className={cn(
             "relative mx-auto flex items-center justify-between transition-all duration-300 ease-out",
             scrolled
-              ? "mt-3 h-12 max-w-[820px] rounded-full bg-white/75 px-5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)] ring-1 ring-black/5 backdrop-blur-xl"
+              ? "mt-3 h-12 max-w-[820px] rounded-full bg-white/75 pl-5 pr-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)] ring-1 ring-black/5 backdrop-blur-xl"
               : "mt-0 h-16 max-w-[1200px] bg-transparent px-6"
           )}
         >
@@ -662,21 +663,28 @@ export function Landing() {
               </a>
             ))}
           </nav>
-          <div className="flex items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
             <Link
               href="/login"
-              className="inline-flex h-10 items-center justify-center rounded-full px-4 text-[13px] font-medium text-black/60 transition-colors hover:text-black/90 hover:bg-black/5"
+              className={cn(
+                "inline-flex items-center justify-center rounded-full font-medium text-black/60 transition-colors hover:text-black/90 hover:bg-black/5",
+                scrolled
+                  ? "h-8 px-3 text-[12px]"
+                  : "h-10 px-4 text-[13px]"
+              )}
             >
               Sign in
             </Link>
             <Link
               href="/request-access"
               className={cn(
-                LANDING_CTA,
-                "min-w-[9.75rem]",
+                "inline-flex items-center justify-center rounded-full font-medium transition-colors",
                 scrolled
-                  ? "bg-neutral-900 text-white hover:bg-neutral-700"
-                  : "border border-white/50 bg-white/30 text-black/85 shadow-[0_1px_2px_rgba(0,0,0,0.06)] backdrop-blur-sm hover:bg-white/50"
+                  ? "h-8 whitespace-nowrap px-3.5 text-[12px] bg-neutral-900 text-white hover:bg-neutral-700"
+                  : cn(
+                      LANDING_CTA,
+                      "min-w-[9.75rem] border border-white/50 bg-white/30 text-black/85 shadow-[0_1px_2px_rgba(0,0,0,0.06)] backdrop-blur-sm hover:bg-white/50"
+                    )
               )}
             >
               Request access
@@ -1024,6 +1032,12 @@ export function Landing() {
               >
                 Who it&apos;s for
               </a>
+              <Link
+                href="/docs"
+                className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+              >
+                API docs
+              </Link>
               <Link
                 href="/request-access"
                 className="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"

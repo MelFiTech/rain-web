@@ -1,10 +1,12 @@
 "use client";
 
 import { ConfidenceBadge } from "@/components/confidence-badge";
+import { dashboardListPanelClassName } from "@/components/dashboard/dashboard-list-panel";
 import { LiveReportStreamCard } from "@/components/dashboard/live-report-stream-card";
 import { ReportCategoriesPanel } from "@/components/dashboard/report-categories-panel";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SparkBars, Sparkline } from "@/components/ui/sparkline";
 import {
   ChartHeadlineStrip,
@@ -91,10 +93,6 @@ export function DashboardView({ data, preview = false }: DashboardViewProps) {
       ),
     },
   ];
-
-  const listScrollClass = preview
-    ? "max-h-[168px] space-y-0.5 overflow-hidden px-1 sm:px-1.5"
-    : "max-h-[min(380px,52vh)] space-y-0.5 overflow-y-auto overscroll-contain px-1 pb-1 sm:px-1.5 no-scrollbar";
 
   return (
     <div className="space-y-6">
@@ -185,7 +183,7 @@ export function DashboardView({ data, preview = false }: DashboardViewProps) {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card padding="none" className="py-4 sm:py-5">
           <CardHeader
-            className="mb-3 px-3 sm:px-4"
+            className="mb-3 items-center px-3 sm:px-4"
             title="Recent verifications"
             action={
               preview ? (
@@ -202,11 +200,22 @@ export function DashboardView({ data, preview = false }: DashboardViewProps) {
               )
             }
           />
-          <div className={listScrollClass}>
+          <div
+            className={dashboardListPanelClassName(preview, {
+              centered: data.recentVerifications.length === 0,
+            })}
+          >
             {data.recentVerifications.length === 0 ? (
-              <p className="px-3 py-8 text-center text-sm text-muted">
-                No verifications yet.
-              </p>
+              <EmptyState
+                icon={ShieldCheck}
+                title="No verifications yet"
+                description={
+                  preview
+                    ? "Verification activity will appear here."
+                    : "Run a check from Verify user to see results here."
+                }
+                className="py-0"
+              />
             ) : (
               data.recentVerifications.map((v) => (
                 <VerificationRow
@@ -222,7 +231,6 @@ export function DashboardView({ data, preview = false }: DashboardViewProps) {
         <Card padding="none" className="py-4 sm:py-5">
           <LiveReportStreamCard
             events={data.reportStream}
-            live={!preview}
             preview={preview}
           />
         </Card>

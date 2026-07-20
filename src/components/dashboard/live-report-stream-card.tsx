@@ -8,7 +8,6 @@ import Link from "next/link";
 
 interface LiveReportStreamCardProps {
   events: NetworkReportEvent[];
-  live?: boolean;
   preview?: boolean;
 }
 
@@ -26,17 +25,16 @@ function LiveIndicator() {
 
 export function LiveReportStreamCard({
   events,
-  live = true,
   preview = false,
 }: LiveReportStreamCardProps) {
   return (
-    <div className={preview ? "" : "py-4 sm:py-5"}>
+    <>
       <CardHeader
-        className="mb-3 px-3 sm:px-4"
+        className="mb-3 items-center px-3 sm:px-4"
         title="Network reports"
         action={
           <div className="flex shrink-0 items-center gap-4">
-            <LiveIndicator />
+            {events.length > 0 && !preview ? <LiveIndicator /> : null}
             {preview ? (
               <span className="inline-flex items-center gap-1 text-sm text-muted">
                 View all <ArrowRight className="h-3.5 w-3.5" />
@@ -52,11 +50,7 @@ export function LiveReportStreamCard({
           </div>
         }
       />
-      <InstitutionReportStream
-        initialEvents={events}
-        live={live}
-        compact={preview}
-      />
-    </div>
+      <InstitutionReportStream initialEvents={events} compact={preview} />
+    </>
   );
 }

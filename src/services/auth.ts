@@ -1,13 +1,10 @@
-import { delay } from "@/lib/utils";
+import {
+  apiGet,
+  apiPost,
+  isApiConfigured,
+} from "@/lib/api-client";
+import { getSession, setSession, clearSession } from "@/lib/session";
 import type { AuthSession, User } from "@/types";
-import { MOCK_USER } from "./mock-data";
-
-const AUTH_KEY = "rain_auth_session";
-
-const VALID_CREDENTIALS = {
-  email: "compliance@paynest.ng",
-  password: "password123",
-};
 
 export interface LoginRequest {
   email: string;
@@ -19,71 +16,68 @@ export type LoginResult =
   | { success: true; session: AuthSession }
   | { success: false; error: string };
 
-function createSession(user: User): AuthSession {
-  return {
-    user,
-    token: `mock_token_${Date.now()}`,
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-  };
-}
+type LoginResponse =
+  | { success: true; session: AuthSession }
+  | { success: false; error: string };
 
 export async function login(request: LoginRequest): Promise<LoginResult> {
-  await delay(900);
-
   if (!request.email || !request.password) {
     return { success: false, error: "Email and password are required." };
   }
 
-  const email = request.email.trim().toLowerCase();
-  if (
-    email !== VALID_CREDENTIALS.email ||
-    request.password !== VALID_CREDENTIALS.password
-  ) {
+  if (!isApiConfigured()) {
     return {
       success: false,
-      error: "Invalid email or password. Please try again.",
+      error:
+        "Rain API is not configured. Set NEXT_PUBLIC_API_URL in your environment.",
     };
   }
 
-  const session = createSession(MOCK_USER);
-  if (typeof window !== "undefined") {
-    const storage = request.rememberMe ? localStorage : sessionStorage;
-    storage.setItem(AUTH_KEY, JSON.stringify(session));
-    if (request.rememberMe) {
-      sessionStorage.removeItem(AUTH_KEY);
-    } else {
-      localStorage.removeItem(AUTH_KEY);
+  try {
+    const result = await apiPost<LoginResponse>("/platform/auth/login", {
+      email: request.email.trim(),
+      password: request.password,
+    });
+    if (!result.success || !("session" in result) || !result.session) {
+      return {
+        success: false,
+        error:
+          ("error" in result && result.error) ||
+          "Invalid email or password. Please try again.",
+      };
     }
+    setSession(result.session, Boolean(request.rememberMe));
+    return { success: true, session: result.session };
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Invalid email or password. Please try again.";
+    return { success: false, error: message };
   }
-
-  return { success: true, session };
 }
 
 export async function logout(): Promise<void> {
-  await delay(200);
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(AUTH_KEY);
-    sessionStorage.removeItem(AUTH_KEY);
+  if (isApiConfigured()) {
+    try {
+      await apiPost("/platform/auth/logout");
+    } catch {
+      /* clear local session even if logout request fails */
+    }
   }
-}
-
-export function getSession(): AuthSession | null {
-  if (typeof window === "undefined") return null;
-  const raw =
-    localStorage.getItem(AUTH_KEY) || sessionStorage.getItem(AUTH_KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as AuthSession;
-  } catch {
-    return null;
-  }
+  clearSession();
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  await delay(200);
-  return getSession()?.user ?? null;
+  const local = getSession()?.user;
+  if (!isApiConfigured()) {
+    return local ?? null;
+  }
+
+  try {
+    const res = await apiGet<{ user: User }>("/platform/auth/me");
+    return res.user;
+  } catch {
+    return local ?? null;
+  }
 }
 
-export function isAuthenticated(): boolean {
-  return getSession() !== null;
-}
+export { getSession, isAuthenticated } from "@/lib/session";
