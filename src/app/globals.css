@@ -113,6 +113,71 @@
   }
 }
 
+/* Landing hero window: a hairline of light around the edge — a constant
+   faint stroke plus a brighter segment that travels around the border */
+.edge-light {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  padding: 1.5px;
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+.edge-light::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.45);
+}
+.edge-light::before {
+  content: "";
+  position: absolute;
+  inset: -150%;
+  background: conic-gradient(
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 255, 255, 0) 290deg,
+    rgba(255, 255, 255, 1) 325deg,
+    rgba(255, 255, 255, 0) 360deg
+  );
+}
+@media (prefers-reduced-motion: no-preference) {
+  .edge-light::before {
+    animation: edge-rotate 7s linear infinite;
+  }
+}
+@keyframes edge-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Landing clouds: slow ambient sway layered under the scroll parallax */
+@keyframes cloud-drift {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-2.5%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-cloud-drift {
+    animation: cloud-drift 26s ease-in-out infinite;
+  }
+  .animate-cloud-drift-slow {
+    animation: cloud-drift 40s ease-in-out infinite reverse;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -131,6 +196,17 @@ body {
   min-height: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Transparent shell for marketing captures (set by /demo?clear=1) — the
+   sidebar strip gets real alpha so the landing hero can show sky through it,
+   and the main container's radius is bumped to stay balanced against the
+   landing window's outer radius */
+:root[data-shot="clear"] body {
+  background: transparent;
+}
+:root[data-shot="clear"] [data-shell-main] {
+  border-radius: 28px;
 }
 
 /* Minimal focus ring */

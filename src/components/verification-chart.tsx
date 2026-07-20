@@ -53,6 +53,7 @@ export function VerificationChart() {
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
+    setWidth(el.offsetWidth); // paint immediately; RO handles later resizes
     const ro = new ResizeObserver((entries) =>
       setWidth(entries[0].contentRect.width)
     );

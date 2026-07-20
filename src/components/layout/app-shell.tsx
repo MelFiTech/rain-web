@@ -53,7 +53,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         collapsed={collapsed}
         onToggle={toggleCollapsed}
       />
-      <div className="flex-1 flex flex-col min-w-0 bg-surface rounded-2xl border border-line shadow-[0_1px_2px_rgba(20,10,15,0.03),0_12px_32px_-12px_rgba(20,10,15,0.08)] overflow-hidden">
+      <div
+        data-shell-main
+        className="flex-1 flex flex-col min-w-0 bg-surface rounded-2xl border border-line shadow-[0_1px_2px_rgba(20,10,15,0.03),0_12px_32px_-12px_rgba(20,10,15,0.08)] overflow-hidden"
+      >
         <Header onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 pb-12 animate-fade-in">
           {children}
