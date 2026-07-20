@@ -719,7 +719,7 @@ export function Landing() {
         {/* On wide screens the copy stays vertically centered between the
             nav and the window (window top grows at 35.28vw; the copy takes
             ~45% of that growth so the air above and below stays even) */}
-        <div className="relative z-20 mx-auto flex max-w-[760px] flex-col items-center px-6 pt-[max(144px,calc(15.83vw_-_84px))] text-center 2xl:pt-[max(128px,calc(9.5vw_-_32px))]">
+        <div className="relative z-20 mx-auto flex max-w-[760px] flex-col items-center px-6 pt-[max(144px,calc(15.83vw_-_84px))] text-center">
           <Reveal>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-black/55">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/80" />
@@ -766,7 +766,7 @@ export function Landing() {
         {/* Dashboard window — Figma: y508, 1100×648 */}
         <div
           ref={windowRef}
-          className="absolute left-1/2 top-[max(508px,35.28vw)] z-10 h-[max(648px,45vw)] w-[min(94vw,max(1100px,76.39vw))] -translate-x-1/2 overflow-hidden rounded-[20px] bg-white/35 shadow-[0_0_0_0.5px_rgba(9,11,12,0.12),0_24px_48px_-12px_rgba(10,30,60,0.35)] ring-1 ring-white/50 backdrop-blur-xl backdrop-saturate-150 will-change-transform 2xl:top-[max(360px,24vw)]"
+          className="absolute left-1/2 top-[max(508px,35.28vw)] z-10 h-[max(648px,45vw)] w-[min(94vw,max(1100px,76.39vw))] -translate-x-1/2 overflow-hidden rounded-[20px] bg-white/35 shadow-[0_0_0_0.5px_rgba(9,11,12,0.12),0_24px_48px_-12px_rgba(10,30,60,0.35)] ring-1 ring-white/50 backdrop-blur-xl backdrop-saturate-150 will-change-transform 2xl:top-[max(492px,34vw)]"
           onMouseMove={(e) => {
             const el = windowRef.current;
             if (!el) return;
@@ -810,7 +810,7 @@ export function Landing() {
           twice, natural size, spilling past the hero onto the white page. */}
       <div
         ref={cloudBackRef}
-        className="pointer-events-none absolute left-1/2 top-[max(402px,27.92vw)] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform 2xl:top-[max(254px,16.64vw)]"
+        className="pointer-events-none absolute left-1/2 top-[max(402px,27.92vw)] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform 2xl:top-[max(386px,26.64vw)]"
         aria-hidden
       >
         <div className="animate-cloud-drift-slow">
@@ -826,7 +826,7 @@ export function Landing() {
       </div>
       <div
         ref={cloudFrontRef}
-        className="pointer-events-none absolute left-1/2 top-[max(506px,35.14vw)] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform 2xl:top-[max(358px,23.86vw)]"
+        className="pointer-events-none absolute left-1/2 top-[max(506px,35.14vw)] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform 2xl:top-[max(490px,33.86vw)]"
         aria-hidden
       >
         <div className="animate-cloud-drift">
@@ -844,7 +844,7 @@ export function Landing() {
       {/* White gradient — Figma node 42:4937: y1153, h870, fades clouds and
           sky into the white page. */}
       <div
-        className="pointer-events-none absolute inset-x-0 top-[max(1090px,75.69vw)] z-30 h-[max(933px,64.79vw)] 2xl:top-[max(942px,64.41vw)]"
+        className="pointer-events-none absolute inset-x-0 top-[max(1090px,75.69vw)] z-30 h-[max(933px,64.79vw)] 2xl:top-[max(1074px,74.41vw)]"
         style={{
           background:
             "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.24) 5.415%, #ffffff 21.147%)",
