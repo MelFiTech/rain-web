@@ -3,15 +3,16 @@
 import { VerifySheetProvider } from "@/contexts/verify-sheet-context";
 import { useAuth } from "@/contexts/auth-context";
 import { RainMark } from "@/components/ui/logo";
+import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 
 const COLLAPSE_KEY = "rain:sidebar-collapsed";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -32,6 +33,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       router.replace("/login");
     }
   }, [user, loading, router]);
+
+  const handleInactivityLogout = useCallback(async () => {
+    await logout();
+    router.replace("/login?reason=inactivity");
+  }, [logout, router]);
+
+  useInactivityLogout(Boolean(user), handleInactivityLogout);
 
   if (loading) {
     return (

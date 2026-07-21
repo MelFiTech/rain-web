@@ -19,6 +19,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [inactivityNotified, setInactivityNotified] = useState(false);
+
+  useEffect(() => {
+    if (inactivityNotified) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reason") === "inactivity") {
+      setInactivityNotified(true);
+      toast.error("You were signed out after a period of inactivity.");
+      router.replace("/login", { scroll: false });
+    }
+  }, [inactivityNotified, router, toast]);
 
   useEffect(() => {
     if (!authLoading && user) {

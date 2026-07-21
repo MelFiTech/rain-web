@@ -45,7 +45,7 @@ export function buildVerificationRecommendation(input: {
     return {
       action: "decline",
       severity: "critical",
-      title: "Critical alert — do not proceed",
+      title: "Critical alert: do not proceed",
       summary: `Very high confidence: ${input.sourceCount} independent institutions reported this identifier.${hint} Decline onboarding or escalate to compliance immediately.`,
     };
   }
@@ -54,7 +54,7 @@ export function buildVerificationRecommendation(input: {
     return {
       action: "decline",
       severity: severe ? "critical" : "high",
-      title: severe ? "High alert — block onboarding" : "Strong adverse signal",
+      title: severe ? "High alert: block onboarding" : "Strong adverse signal",
       summary: severe
         ? `${input.sourceCount} institutions flagged this identifier with serious fraud-related categories.${hint} We recommend declining until compliance clears the case.`
         : `${input.sourceCount} independent institutions reported this identifier.${hint} Decline or hold the application for manual compliance review.`,

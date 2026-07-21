@@ -29,6 +29,6 @@ export function buildConfidence(sourceCount: number): ConfidenceInfo {
     level,
     independentSourceCount: sourceCount,
     label,
-    description: `${label} confidence — reported by ${institutions}.`,
+    description: `${label} confidence, reported by ${institutions}.`,
   };
 }

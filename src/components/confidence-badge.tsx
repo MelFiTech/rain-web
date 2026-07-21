@@ -43,7 +43,7 @@ export function ConfidenceText({ confidence }: { confidence: ConfidenceInfo }) {
   return (
     <p className="text-sm text-muted">
       <span className="font-medium text-foreground">{confidence.label}</span>
-      {" confidence — reported by "}
+      {" confidence, reported by "}
       {confidence.independentSourceCount === 1
         ? "1 independent institution"
         : `${confidence.independentSourceCount} independent institutions`}
