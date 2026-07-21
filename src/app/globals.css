@@ -29,6 +29,36 @@
   --violet-bg: rgba(139, 124, 246, 0.14);
 }
 
+/* Dark — scoped override for surfaces that are dark by design (auth
+   screens), regardless of the user's stored theme */
+[data-theme="dark"] {
+  --background: #131112;
+  --foreground: #e8e5e6;
+  --surface: #191617;
+  --card: #211e1f;
+  --muted: #a09a9d;
+  --subtle: #6f696c;
+  --hover: #262223;
+  --active: #2e2a2b;
+  --ink: #f6f3f4;
+  --line: #2a2728;
+  --primary: #ea4c89;
+  --primary-hover: #f0619a;
+  --primary-soft: #3d1a29;
+  --nav-hover: rgba(255, 255, 255, 0.05);
+  --glass: rgba(30, 27, 28, 0.55);
+  --ok-fg: #5cd68f;
+  --ok-bg: rgba(74, 222, 128, 0.12);
+  --warn-fg: #f5b83d;
+  --warn-bg: rgba(251, 191, 36, 0.12);
+  --info-fg: #74abf7;
+  --info-bg: rgba(96, 165, 250, 0.13);
+  --bad-fg: #f57e7e;
+  --bad-bg: rgba(248, 113, 113, 0.13);
+  --violet-fg: #a99df8;
+  --violet-bg: rgba(139, 124, 246, 0.14);
+}
+
 /* Light — user opt-in or scoped embed (e.g. landing dashboard preview) */
 :root[data-theme="light"],
 [data-theme="light"] {
@@ -294,6 +324,28 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .animate-drawer-in {
   animation: drawer-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Modal panel: rises as a bottom sheet on mobile, slides in as a right
+   drawer from sm up */
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-panel-in {
+  animation: sheet-in 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (min-width: 640px) {
+  .animate-panel-in {
+    animation: drawer-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
 
 @keyframes pulse-soft {

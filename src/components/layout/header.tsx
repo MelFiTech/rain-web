@@ -152,7 +152,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             </button>
 
             {notifOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-line bg-glass backdrop-blur-[48px] backdrop-saturate-[1.8] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_48px_-12px_rgba(10,5,8,0.5)] animate-fade-in overflow-hidden">
+              <div className="absolute right-0 mt-2 w-[264px] sm:w-80 rounded-2xl border border-line bg-glass backdrop-blur-[48px] backdrop-saturate-[1.8] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_16px_48px_-12px_rgba(10,5,8,0.5)] animate-fade-in overflow-hidden">
                 <div className="px-4 py-3 flex items-center justify-between">
                   <span className="text-sm font-semibold text-ink">
                     Notifications

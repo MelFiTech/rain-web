@@ -79,7 +79,10 @@ export default function RequestAccessPage() {
   };
 
   return (
-    <div className="relative h-screen flex overflow-hidden bg-[#0e0c0d]">
+    <div
+      data-theme="dark"
+      className="relative h-screen flex overflow-hidden bg-[#0e0c0d]"
+    >
       <div className="absolute -inset-3.5 halftone" aria-hidden />
 
       <div className="relative flex-1 flex p-2 sm:p-2.5">
@@ -228,17 +231,6 @@ export default function RequestAccessPage() {
             )}
           </div>
 
-          <div className="w-full max-w-[400px] mx-auto flex items-center justify-center gap-4 text-xs text-muted">
-            <span className="hover:text-foreground transition-colors cursor-pointer">
-              Terms of Service
-            </span>
-            <span className="hover:text-foreground transition-colors cursor-pointer">
-              Privacy Policy
-            </span>
-            <span className="hover:text-foreground transition-colors cursor-pointer">
-              Support
-            </span>
-          </div>
         </div>
       </div>
 

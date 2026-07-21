@@ -54,9 +54,9 @@ export function Modal({
   if (!open) return null;
 
   const sizes = {
-    sm: "w-[min(calc(100vw-16px),24rem)]",
-    md: "w-[min(calc(100vw-16px),28rem)]",
-    lg: "w-[min(calc(100vw-16px),34rem)]",
+    sm: "sm:w-[min(calc(100vw-16px),24rem)]",
+    md: "sm:w-[min(calc(100vw-16px),28rem)]",
+    lg: "sm:w-[min(calc(100vw-16px),34rem)]",
   };
 
   return (
@@ -66,16 +66,18 @@ export function Modal({
         onClick={closeOnBackdropClick ? onClose : undefined}
         aria-hidden
       />
-      {/* Floating right drawer — inset from top/right/bottom like the app shell */}
+      {/* Floating bottom sheet on mobile; floating right drawer from sm up —
+          both inset from the edges like the app shell */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
         className={cn(
-          "absolute inset-y-2 right-2 sm:inset-y-2.5 sm:right-2.5 flex flex-col",
+          "absolute bottom-2 left-2 right-2 top-auto flex max-h-[85dvh] flex-col",
+          "sm:bottom-2.5 sm:left-auto sm:right-2.5 sm:top-2.5 sm:max-h-none",
           "bg-surface rounded-2xl border border-line overflow-hidden",
           "shadow-[0_1px_2px_rgba(20,10,15,0.06),0_24px_64px_-16px_rgba(10,5,8,0.55)]",
-          "animate-drawer-in",
+          "animate-panel-in",
           sizes[size],
           className
         )}

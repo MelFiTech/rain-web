@@ -3,6 +3,7 @@
 import { RainMark } from "@/components/ui/logo";
 import { LandingDashboardPreview } from "@/components/landing/landing-dashboard-preview";
 import { cn } from "@/lib/utils";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -131,11 +132,16 @@ function FeatureShot({
       )}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
+      {/* On mobile the shot renders at 250% of the narrow container so it
+          still overflows the bottom edge — otherwise the fade has nothing
+          to dissolve and the image hard-stops above it */}
       <img
         src={src}
         alt={alt}
-        className="absolute top-0 h-auto max-w-none rounded-2xl ring-1 ring-black/[0.06] shadow-[0_30px_70px_-30px_rgba(15,25,50,0.3)]"
-        style={{ left: shiftX, width: imgW }}
+        className="absolute top-0 h-auto w-[250%] max-w-none rounded-2xl ring-1 ring-black/[0.06] shadow-[0_30px_70px_-30px_rgba(15,25,50,0.3)] sm:w-[var(--imgw)]"
+        style={
+          { left: shiftX, "--imgw": imgW } as React.CSSProperties
+        }
       />
       {/* Dissolve into the page on the right and bottom edges */}
       <div
@@ -585,6 +591,7 @@ export function Landing() {
   const cloudBackRef = useRef<HTMLDivElement>(null);
   const cloudFrontRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   /* The window's transform mixes the scroll parallax with the hover tilt,
      so both handlers write through one compose step */
@@ -637,7 +644,7 @@ export function Landing() {
           className={cn(
             "relative mx-auto flex items-center justify-between transition-all duration-300 ease-out",
             scrolled
-              ? "mt-3 h-12 max-w-[820px] rounded-full bg-white/75 pl-5 pr-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)] ring-1 ring-black/5 backdrop-blur-xl"
+              ? "mt-3 h-12 max-w-[calc(100%-24px)] rounded-full bg-white/75 pl-3.5 pr-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)] ring-1 ring-black/5 backdrop-blur-xl sm:max-w-[820px] sm:pl-5"
               : "mt-0 h-16 max-w-[1200px] bg-transparent px-6"
           )}
         >
@@ -663,7 +670,7 @@ export function Landing() {
               </a>
             ))}
           </nav>
-          <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+          <div className="hidden shrink-0 items-center gap-1 sm:gap-1.5 md:flex">
             <Link
               href="/login"
               className={cn(
@@ -690,8 +697,74 @@ export function Landing() {
               Request access
             </Link>
           </div>
+          {/* Mobile — everything lives in the drawer */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open navigation"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-black/80 transition-colors hover:bg-black/5 md:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
         </div>
       </header>
+
+      {/* Mobile drawer — floating panel, same treatment as the app's drawers */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden">
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            onClick={() => setMenuOpen(false)}
+            aria-hidden
+          />
+          <div className="animate-drawer-in absolute bottom-3 right-3 top-3 flex w-[290px] flex-col rounded-2xl border border-black/5 bg-white p-5 shadow-[0_24px_60px_-12px_rgba(0,0,0,0.35)]">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <RainMark black className="h-5 w-5" />
+                <span className="text-[15px] font-semibold tracking-tight text-black/90">
+                  Rain
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close navigation"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-black/60 transition-colors hover:bg-black/5"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <nav className="mt-6 flex flex-col">
+              {NAV_LINKS.map((l) => (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-xl px-3 py-3.5 text-[17px] font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
+                >
+                  {l.label}
+                </a>
+              ))}
+            </nav>
+            <div className="mt-auto flex flex-col gap-2.5">
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                className="inline-flex h-11 items-center justify-center rounded-full border border-neutral-200 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
+              >
+                Sign in
+              </Link>
+              <Link
+                href="/request-access"
+                onClick={() => setMenuOpen(false)}
+                className="inline-flex h-11 items-center justify-center rounded-full bg-neutral-900 text-sm font-medium text-white transition-colors hover:bg-neutral-700"
+              >
+                Request access
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ==================== SKY + CLOUDS (Figma geometry) ==============
           Hero frame is 1193px tall and clips the sky video. The cloud images
           are siblings placed OVER it (y402 / y506, natural 3:2 size, never
@@ -774,7 +847,7 @@ export function Landing() {
         {/* Dashboard window — Figma: y508, 1100×648 */}
         <div
           ref={windowRef}
-          className="absolute left-1/2 top-[max(508px,35.28vw)] z-10 h-[max(648px,45vw)] w-[min(94vw,max(1100px,76.39vw))] -translate-x-1/2 overflow-hidden rounded-[20px] bg-white/35 shadow-[0_0_0_0.5px_rgba(9,11,12,0.12),0_24px_48px_-12px_rgba(10,30,60,0.35)] ring-1 ring-white/50 backdrop-blur-xl backdrop-saturate-150 will-change-transform 2xl:top-[max(492px,34vw)]"
+          className="absolute left-4 top-[564px] z-10 h-[473px] w-[760px] overflow-hidden rounded-[14px] bg-white/35 shadow-[0_24px_48px_-12px_rgba(10,30,60,0.35)] backdrop-blur-xl backdrop-saturate-150 will-change-transform sm:left-1/2 sm:top-[max(508px,35.28vw)] sm:h-[min(60vw,max(648px,45vw))] sm:w-[min(94vw,max(1100px,76.39vw))] sm:-translate-x-1/2 sm:rounded-[20px] 2xl:top-[max(492px,34vw)]"
           onMouseMove={(e) => {
             const el = windowRef.current;
             if (!el) return;
@@ -795,9 +868,23 @@ export function Landing() {
             }, 500);
           }}
         >
-          <LandingDashboardPreview />
-          {/* Shiny hairline that travels around the window edge */}
-          <div className="edge-light" aria-hidden />
+          {/* Mobile shows the desktop capture — the live preview's inner
+              layout responds to the phone viewport and would collapse into
+              the app's stacked mobile arrangement */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/landing/dashboard.png"
+            alt="The Rain dashboard — verification activity, report categories, and live network signals"
+            className="block w-full pl-2.5 pt-1 sm:hidden"
+            width={2000}
+            height={1250}
+          />
+          <div className="hidden h-full sm:block">
+            <LandingDashboardPreview />
+          </div>
+          {/* Shiny hairline that travels around the window edge — desktop
+              only; at mobile scale it reads as a stray border */}
+          <div className="edge-light hidden sm:block" aria-hidden />
         </div>
 
         {/* On wide screens the cloud band sits lower, so the video (and the
@@ -818,7 +905,7 @@ export function Landing() {
           twice, natural size, spilling past the hero onto the white page. */}
       <div
         ref={cloudBackRef}
-        className="pointer-events-none absolute left-1/2 top-[max(402px,27.92vw)] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform 2xl:top-[max(386px,26.64vw)]"
+        className="pointer-events-none absolute left-1/2 top-[240px] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform sm:top-[max(402px,27.92vw)] 2xl:top-[max(386px,26.64vw)]"
         aria-hidden
       >
         <div className="animate-cloud-drift-slow">
@@ -834,7 +921,7 @@ export function Landing() {
       </div>
       <div
         ref={cloudFrontRef}
-        className="pointer-events-none absolute left-1/2 top-[max(506px,35.14vw)] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform 2xl:top-[max(490px,33.86vw)]"
+        className="pointer-events-none absolute left-1/2 top-[344px] z-20 w-[max(1680px,115vw)] -translate-x-1/2 will-change-transform sm:top-[max(506px,35.14vw)] 2xl:top-[max(490px,33.86vw)]"
         aria-hidden
       >
         <div className="animate-cloud-drift">
