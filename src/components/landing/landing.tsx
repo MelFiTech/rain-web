@@ -648,7 +648,16 @@ export function Landing() {
               : "mt-0 h-16 max-w-[1200px] bg-transparent px-6"
           )}
         >
-          <Link href="/" className="flex items-center gap-1.5">
+          <Link
+            href="/"
+            onClick={() => {
+              setMenuOpen(false);
+              // Already on the landing page — Next would no-op, so reset the
+              // scroll to the top instead of leaving the reader where they were
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            className="flex items-center gap-1.5"
+          >
             <RainMark black className="h-5 w-5" />
             <span className="text-[15px] font-semibold tracking-tight text-black/90">
               Rain
