@@ -100,6 +100,37 @@ function NavDropdown({ item }: { item: DocsNavItem }) {
   );
 }
 
+/* Mobile: a horizontal scrolling strip of the top-level pages, so the docs
+   nav doesn't stack into a full screen of links above the content */
+export function DocsNavMobile() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 lg:hidden">
+      {DOCS_NAV.map((item) => {
+        const active =
+          item.href === "/docs"
+            ? pathname === "/docs"
+            : pathname.startsWith(item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm transition-colors",
+              active
+                ? "border-transparent bg-ink font-medium text-background"
+                : "border-line text-muted hover:text-foreground"
+            )}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function DocsNav() {
   const pathname = usePathname();
 

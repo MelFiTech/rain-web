@@ -1,6 +1,6 @@
 "use client";
 
-import { DocsNav } from "@/components/docs/docs-nav";
+import { DocsNav, DocsNavMobile } from "@/components/docs/docs-nav";
 import { RainMark } from "@/components/ui/logo";
 import Link from "next/link";
 import { Check, Copy } from "lucide-react";
@@ -78,8 +78,15 @@ export function DocsShell({
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-14">
-        <aside className="lg:sticky lg:top-20 lg:self-start">
+      {/* Mobile: sticky horizontal nav strip under the header */}
+      <div className="sticky top-14 z-30 border-b border-line bg-surface/90 py-3 backdrop-blur-md lg:hidden">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <DocsNavMobile />
+        </div>
+      </div>
+
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-14">
+        <aside className="hidden lg:sticky lg:top-20 lg:block lg:self-start">
           <p className="text-xs font-medium uppercase tracking-wider text-subtle">
             Developer API
           </p>
@@ -93,7 +100,7 @@ export function DocsShell({
           </p>
         </aside>
 
-        <main>
+        <main className="min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <h1 className="min-w-0 text-3xl font-semibold tracking-tight text-ink">
               {title}
@@ -112,7 +119,9 @@ export function DocsShell({
               {pageCopied ? "Copied" : "Copy page"}
             </button>
           </div>
-          <div ref={bodyRef}>{children}</div>
+          <div ref={bodyRef} className="[&_code]:break-words">
+            {children}
+          </div>
         </main>
       </div>
     </div>
